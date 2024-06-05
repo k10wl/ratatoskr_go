@@ -1,6 +1,7 @@
 package config
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -9,6 +10,7 @@ func TestInit(t *testing.T) {
 		name        string
 		shouldError bool
 		getenv      func(string) string
+		expected    *Config
 	}
 
 	table := []tc{
@@ -19,47 +21,31 @@ func TestInit(t *testing.T) {
 				switch s {
 				case "TOKEN":
 					return ""
-				case "URL":
-					return "URL"
-				case "WEBHOOK_SECRET":
-					return "WEBHOOK_SECRET"
+				case "ADMIN_IDS":
+					return "1,2"
 				default:
 					return ""
 				}
 			},
+			expected: nil,
 		},
+
 		{
-			name:        "should fail if URL was not provided",
+			name:        "should fail if admin ID's are not provided",
 			shouldError: true,
 			getenv: func(s string) string {
 				switch s {
 				case "TOKEN":
 					return "TOKEN"
-				case "URL":
-					return ""
-				case "WEBHOOK_SECRET":
-					return "WEBHOOK_SECRET"
-				default:
-					return ""
-				}
-			},
-		},
-		{
-			name:        "should fail if WEBHOOK_SECRET was not provided",
-			shouldError: true,
-			getenv: func(s string) string {
-				switch s {
-				case "TOKEN":
-					return "TOKEN"
-				case "URL":
-					return "URL"
-				case "WEBHOOK_SECRET":
+				case "ADMIN_IDS":
 					return ""
 				default:
 					return ""
 				}
 			},
+			expected: nil,
 		},
+
 		{
 			name:        "should get config",
 			shouldError: false,
@@ -67,14 +53,13 @@ func TestInit(t *testing.T) {
 				switch s {
 				case "TOKEN":
 					return "TOKEN"
-				case "URL":
-					return "URL"
-				case "WEBHOOK_SECRET":
-					return "WEBHOOK_SECRET"
+				case "ADMIN_IDS":
+					return "1,2"
 				default:
 					return ""
 				}
 			},
+			expected: &Config{Token: "TOKEN", AdminIDs: []int64{1, 2}},
 		},
 	}
 
@@ -90,8 +75,64 @@ func TestInit(t *testing.T) {
 			t.Errorf("Unexpected error in %s: \nError:%s\n", test.name, err)
 			continue
 		}
-		if c == nil {
-			t.Errorf("Did not create config instance: %s", test.name)
+		if !reflect.DeepEqual(*c, *test.expected) {
+			t.Errorf(
+				"Did not create correct config instance in %s \nexpected: %+v\nactual:   %+v",
+				test.name,
+				*test.expected,
+				*c,
+			)
+		}
+	}
+}
+
+func TestStringToIntSlice(t *testing.T) {
+	type tc struct {
+		name        string
+		input       string
+		expected    []int64
+		shouldError bool
+	}
+
+	table := []tc{
+		{
+			name:     "should return error if wrong values were provided",
+			input:    "this is not int",
+			expected: []int64{},
+		},
+
+		{
+			name:     "should return error if wrong values were provided",
+			input:    ",",
+			expected: []int64{},
+		},
+
+		{
+			name:     "should return empty array",
+			input:    "",
+			expected: []int64{},
+		},
+
+		{
+			name:     "should return slice of ints",
+			input:    "123,456",
+			expected: []int64{123, 456},
+		},
+	}
+
+	for _, test := range table {
+		actual, err := stringToIntSlice(test.input)
+		if err != nil {
+			t.Errorf("unexpected error in %s: %+v", test.name, err)
+		}
+
+		if !reflect.DeepEqual(test.expected, actual) {
+			t.Errorf(
+				"failed to give expected result %s\nexpected: %v\nactual:   %v",
+				test.name,
+				test.expected,
+				actual,
+			)
 		}
 	}
 }

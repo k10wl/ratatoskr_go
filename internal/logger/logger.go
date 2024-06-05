@@ -45,8 +45,9 @@ func (l Logger) Warning(s string) {
 	l.infoLogger.Printf(format("WARNING", s))
 }
 
-func (l Logger) Error(s string) {
+func (l Logger) Error(s string) error {
 	l.errLogger.Printf(format("ERROR", s))
+	return fmt.Errorf(s)
 }
 
 func format(level string, message string) string {
