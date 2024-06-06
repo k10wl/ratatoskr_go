@@ -46,5 +46,6 @@ func Run(logger *logger.Logger, config *config.Config) error {
 	}
 	logger.Info("polling started")
 	logger.Info(fmt.Sprintf("%s is live", bot.FirstName))
+	updater.Idle()
 	return nil
 }

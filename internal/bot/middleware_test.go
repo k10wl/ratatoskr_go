@@ -17,11 +17,12 @@ func TestAdminOnly(t *testing.T) {
 		return nil
 	}
 
-	adminOnly(
+	middleware := newMidlleware(
 		logger.NewLogger("test", os.Stdout, os.Stderr),
 		&config.Config{AdminIDs: []int64{1234}},
-		fakeHandler,
-	)(
+	)
+
+	middleware.adminOnly(fakeHandler)(
 		nil,
 		&ext.Context{EffectiveSender: &gotgbot.Sender{User: &gotgbot.User{Id: 9876}}},
 	)
@@ -31,11 +32,7 @@ func TestAdminOnly(t *testing.T) {
 		called = false
 	}
 
-	adminOnly(
-		logger.NewLogger("test", os.Stdout, os.Stderr),
-		&config.Config{AdminIDs: []int64{1234}},
-		fakeHandler,
-	)(
+	middleware.adminOnly(fakeHandler)(
 		nil,
 		&ext.Context{EffectiveSender: &gotgbot.Sender{User: &gotgbot.User{Id: 1234}}},
 	)
@@ -45,11 +42,7 @@ func TestAdminOnly(t *testing.T) {
 		called = false
 	}
 
-	adminOnly(
-		nil,
-		&config.Config{AdminIDs: []int64{1234}},
-		fakeHandler,
-	)(
+	middleware.adminOnly(fakeHandler)(
 		nil,
 		&ext.Context{EffectiveSender: &gotgbot.Sender{User: &gotgbot.User{Id: 1234}}},
 	)

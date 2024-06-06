@@ -14,8 +14,8 @@ type Logger struct {
 const delimeterStart = "{{ "
 const delimeterEnd = " }}"
 
-var infoFlags = (log.Ldate | log.Ltime)
-var errFlags = (log.Ldate | log.Ltime | log.Lshortfile)
+var infoFlags = (log.Ldate | log.Ltime | log.Lmicroseconds)
+var errFlags = (log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile)
 
 func NewLogger(
 	name string,
