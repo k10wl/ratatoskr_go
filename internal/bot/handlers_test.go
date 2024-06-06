@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"fmt"
 	"ratatoskr/internal/logger"
 	"reflect"
 	"strings"
@@ -25,7 +24,6 @@ func TestReceiveGroupMedia(t *testing.T) {
 	res := fakeHandler.receiveGroup(
 		time.Millisecond*500,
 		func(b *gotgbot.Bot, ctx *ext.Context) error {
-			fmt.Println("next", calls, fakeHandler.mediaGroupMap)
 			calls++
 			return nil
 		},
