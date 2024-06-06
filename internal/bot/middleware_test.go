@@ -1,9 +1,9 @@
 package bot
 
 import (
-	"os"
 	"ratatoskr/internal/config"
 	"ratatoskr/internal/logger"
+	"strings"
 	"testing"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -18,7 +18,7 @@ func TestAdminOnly(t *testing.T) {
 	}
 
 	middleware := newMidlleware(
-		logger.NewLogger("test", os.Stdout, os.Stderr),
+		logger.NewLogger("test", &strings.Builder{}, &strings.Builder{}),
 		&config.Config{AdminIDs: []int64{1234}},
 	)
 
