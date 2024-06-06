@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"ratatoskr/internal/config"
 	"ratatoskr/internal/logger"
+	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
@@ -12,53 +13,82 @@ import (
 )
 
 type handler struct {
-	logger *logger.Logger
+	logger        *logger.Logger
+	mediaGroupMap map[string][]string
 }
 
 func newHandler(
 	logger *logger.Logger,
 ) *handler {
 	return &handler{
-		logger: logger,
+		logger:        logger,
+		mediaGroupMap: map[string][]string{},
 	}
 }
 
-func addHandlers(dispatcher *ext.Dispatcher, logger *logger.Logger, config *config.Config) {
+func addHandlers(
+	dispatcher *ext.Dispatcher,
+	logger *logger.Logger,
+	config *config.Config,
+) {
 	handler := newHandler(logger)
 	middleware := newMidlleware(logger, config)
-	dispatcher.AddHandler(
-		handlers.NewMessage(message.Text,
-			middleware.adminOnly(handler.handleEchoMessage(handler.removeOriginal()))),
-	)
-	dispatcher.AddHandler(
-		handlers.NewMessage(message.MediaGroup,
-			middleware.adminOnly(handler.handleMediaGroup(handler.removeOriginal()))),
-	)
-	dispatcher.AddHandler(
-		handlers.NewMessage(message.Photo,
-			middleware.adminOnly(handler.handlePhoto(handler.removeOriginal()))),
-	)
-	dispatcher.AddHandler(
-		handlers.NewMessage(message.Video,
-			middleware.adminOnly(handler.handleVideo(handler.removeOriginal()))),
-	)
-	dispatcher.AddHandler(
-		handlers.NewMessage(message.Animation,
-			middleware.adminOnly(handler.handleAnimation(handler.removeOriginal()))),
-	)
-}
 
-func (h handler) handleMediaGroup(next handlers.Response) handlers.Response {
-	return func(b *gotgbot.Bot, ctx *ext.Context) error {
-		chatID := ctx.EffectiveMessage.GetSender().Id()
-		h.logger.Info(fmt.Sprintf("%+v", ctx.EffectiveMessage))
-		b.SendMessage(
-			chatID,
-			"I don't know how to process group yet",
-			&gotgbot.SendMessageOpts{},
-		)
-		return next(b, ctx)
-	}
+	dispatcher.AddHandler(
+		handlers.NewMessage(
+			message.Text,
+			middleware.adminOnly(
+				handler.handleEchoMessage(
+					handler.removeOriginal(),
+				),
+			),
+		),
+	)
+
+	dispatcher.AddHandler(
+		handlers.NewMessage(
+			message.MediaGroup,
+			middleware.adminOnly(
+				handler.receiveGroup(
+					time.Millisecond*500,
+					handler.respondWithMediaGroup(),
+				),
+			),
+		),
+	)
+
+	dispatcher.AddHandler(
+		handlers.NewMessage(
+			message.Photo,
+			middleware.adminOnly(
+				handler.handlePhoto(
+					handler.removeOriginal(),
+				),
+			),
+		),
+	)
+
+	dispatcher.AddHandler(
+		handlers.NewMessage(
+			message.Video,
+			middleware.adminOnly(
+				handler.handleVideo(
+					handler.removeOriginal(),
+				),
+			),
+		),
+	)
+
+	dispatcher.AddHandler(
+		handlers.NewMessage(
+			message.Animation,
+			middleware.adminOnly(
+				handler.handleAnimation(
+					handler.removeOriginal(),
+				),
+			),
+		),
+	)
 }
 
 func (h handler) handlePhoto(next handlers.Response) handlers.Response {
@@ -133,13 +163,56 @@ func (h handler) removeOriginal() handlers.Response {
 			ctx.EffectiveMessage.MessageId,
 			&gotgbot.DeleteMessageOpts{},
 		)
-		if !ok {
-			h.logger.Warning("failed to delete video reply message")
+		if ok {
+			h.logger.Info("original message removed successfully")
 		}
 		if err != nil {
 			h.logger.Warning(fmt.Sprintf("failed to delete video reply message, error: %v", err))
 		}
-		h.logger.Info("original message removed successfully")
+		return nil
+	}
+}
+
+func (h *handler) receiveGroup(
+	interval time.Duration,
+	next handlers.Response,
+) handlers.Response {
+	lastMessageID := map[string]int64{}
+	return func(b *gotgbot.Bot, ctx *ext.Context) error {
+		val, _ := h.mediaGroupMap[ctx.EffectiveMessage.MediaGroupId]
+		var mediaFileID string
+		if ctx.EffectiveMessage.Video != nil {
+			mediaFileID = ctx.EffectiveMessage.Video.FileId
+		} else {
+			mediaFileID = ctx.EffectiveMessage.Photo[0].FileId
+		}
+		h.mediaGroupMap[ctx.EffectiveMessage.MediaGroupId] = append(
+			val,
+			mediaFileID,
+		)
+		lastMessageID[ctx.EffectiveMessage.MediaGroupId] = ctx.EffectiveMessage.MessageId
+		go func() {
+			time.Sleep(interval)
+			if lastMessageID[ctx.EffectiveMessage.MediaGroupId] != ctx.EffectiveMessage.MessageId {
+				return
+			}
+			// I WANT TO BREAK FREE
+			delete(lastMessageID, ctx.EffectiveMessage.MediaGroupId)
+			next(b, ctx)
+		}()
+		return nil
+	}
+}
+
+func (h handler) respondWithMediaGroup() handlers.Response {
+	return func(b *gotgbot.Bot, ctx *ext.Context) error {
+		group := []gotgbot.InputMedia{}
+		for _, v := range h.mediaGroupMap {
+			for _, id := range v {
+				group = append(group, gotgbot.InputMediaPhoto{Media: id})
+			}
+		}
+		b.SendMediaGroup(ctx.EffectiveSender.ChatId, group, &gotgbot.SendMediaGroupOpts{})
 		return nil
 	}
 }
