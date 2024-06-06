@@ -59,7 +59,7 @@ func TestReceiveGroupMedia(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	expected := map[string][]string{"1": []string{"1", "2", "3", "4"}}
+	expected := map[string][]string{"1": {"1", "2", "3", "4"}}
 	if !reflect.DeepEqual(fakeHandler.mediaGroupMap, expected) {
 		t.Errorf(
 			"Failed to receive media group\nexpected: %+v\nactual:   %+v",
