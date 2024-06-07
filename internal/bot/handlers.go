@@ -17,6 +17,11 @@ type handler struct {
 	mediaGroupMap map[string][]string
 }
 
+var bot = gotgbot.Bot{}
+var (
+	DeleteMessage = bot.DeleteMessage
+)
+
 func newHandler(
 	logger *logger.Logger,
 ) *handler {
@@ -39,7 +44,7 @@ func addHandlers(
 			message.Text,
 			middleware.adminOnly(
 				handler.handleEchoMessage(
-					handler.removeOriginal(),
+					handler.removeOneEffectiveMessage(),
 				),
 			),
 		),
@@ -62,7 +67,7 @@ func addHandlers(
 			message.Photo,
 			middleware.adminOnly(
 				handler.handlePhoto(
-					handler.removeOriginal(),
+					handler.removeOneEffectiveMessage(),
 				),
 			),
 		),
@@ -73,7 +78,7 @@ func addHandlers(
 			message.Video,
 			middleware.adminOnly(
 				handler.handleVideo(
-					handler.removeOriginal(),
+					handler.removeOneEffectiveMessage(),
 				),
 			),
 		),
@@ -84,7 +89,7 @@ func addHandlers(
 			message.Animation,
 			middleware.adminOnly(
 				handler.handleAnimation(
-					handler.removeOriginal(),
+					handler.removeOneEffectiveMessage(),
 				),
 			),
 		),
@@ -156,9 +161,9 @@ func (h handler) handleEchoMessage(next handlers.Response) handlers.Response {
 	}
 }
 
-func (h handler) removeOriginal() handlers.Response {
+func (h handler) removeOneEffectiveMessage() handlers.Response {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
-		ok, err := b.DeleteMessage(
+		ok, err := DeleteMessage(
 			ctx.EffectiveMessage.GetSender().Id(),
 			ctx.EffectiveMessage.MessageId,
 			&gotgbot.DeleteMessageOpts{},

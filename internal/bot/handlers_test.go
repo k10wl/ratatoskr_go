@@ -11,14 +11,16 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
-func TestReceiveGroupMedia(t *testing.T) {
-	fakeHandler := newHandler(
-		logger.NewLogger(
-			"test logger",
-			&strings.Builder{},
-			&strings.Builder{},
-		),
+func fakeLogger() *logger.Logger {
+	return logger.NewLogger(
+		"test logger",
+		&strings.Builder{},
+		&strings.Builder{},
 	)
+}
+
+func TestReceiveGroupMedia(t *testing.T) {
+	fakeHandler := newHandler(fakeLogger())
 
 	calls := 0
 	res := fakeHandler.receiveGroup(
@@ -73,5 +75,44 @@ func TestReceiveGroupMedia(t *testing.T) {
 			1,
 			calls,
 		)
+	}
+}
+
+func TestRemoveOneEffectiveMessage(t *testing.T) {
+	type arg struct {
+		messageId int64
+		chatId    int64
+	}
+	var removed arg
+	calls := 0
+	fakeHandler := newHandler(fakeLogger())
+	original := DeleteMessage
+	defer func() {
+		DeleteMessage = original
+	}()
+	DeleteMessage = func(chatId, messageId int64, opts *gotgbot.DeleteMessageOpts) (bool, error) {
+		calls++
+		removed = arg{
+			chatId:    chatId,
+			messageId: messageId,
+		}
+		return true, nil
+	}
+
+	err := fakeHandler.removeOneEffectiveMessage()(&gotgbot.Bot{}, &ext.Context{
+		EffectiveMessage: &gotgbot.Message{
+			MessageId:  1,
+			SenderChat: &gotgbot.Chat{Id: 1},
+		},
+	})
+
+	if err != nil {
+		t.Errorf("Unexpected error in removeOriginal")
+	}
+	if calls != 1 {
+		t.Errorf("Wrong amount of deletion calls")
+	}
+	if !reflect.DeepEqual(removed, arg{messageId: 1, chatId: 1}) {
+		t.Errorf("Did not remove correct original")
 	}
 }
