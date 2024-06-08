@@ -230,3 +230,60 @@ func TestSendVideo(t *testing.T) {
 		t.Errorf("Did not send correct video (%+v)", send)
 	}
 }
+
+func TestSendAnimation(t *testing.T) {
+	type arg struct {
+		fileID gotgbot.InputFile
+		chatID int64
+	}
+	var send arg
+	calls := 0
+	nextCalled := false
+	fakeHandler := newHandler(fakeLogger())
+	original := sendAnimation
+	defer func() {
+		sendAnimation = original
+	}()
+	sendAnimation = func(
+		b bot,
+		chatId int64,
+		fileID gotgbot.InputFile,
+		opts *gotgbot.SendAnimationOpts,
+	) (*gotgbot.Message, error) {
+		calls++
+		send = arg{
+			chatID: chatId,
+			fileID: fileID,
+		}
+		return &gotgbot.Message{}, nil
+	}
+
+	mockNext := func(b *gotgbot.Bot, ctx *ext.Context) error {
+		nextCalled = true
+		return nil
+	}
+
+	err := fakeHandler.handleAnimation(mockNext)(
+		&gotgbot.Bot{},
+		&ext.Context{
+			EffectiveMessage: &gotgbot.Message{
+				MessageId:  1,
+				SenderChat: &gotgbot.Chat{Id: 1},
+				Animation:  &gotgbot.Animation{FileId: "unique file id"},
+			},
+		},
+	)
+
+	if err != nil {
+		t.Errorf("Unexpected error in handleAnimation")
+	}
+	if !nextCalled {
+		t.Errorf("Next was not called after handleAnimation")
+	}
+	if calls != 1 {
+		t.Errorf("Wrong amount of send animation calls (%d)", calls)
+	}
+	if !reflect.DeepEqual(send, arg{fileID: "unique file id", chatID: 1}) {
+		t.Errorf("Did not send correct animation (%+v)", send)
+	}
+}

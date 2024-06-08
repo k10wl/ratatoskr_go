@@ -131,7 +131,8 @@ func (h handler) handleVideo(next handlers.Response) handlers.Response {
 func (h handler) handleAnimation(next handlers.Response) handlers.Response {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
 		chatID := ctx.EffectiveMessage.GetSender().Id()
-		_, err := b.SendAnimation(
+		_, err := sendAnimation(
+			b,
 			chatID,
 			ctx.EffectiveMessage.Animation.FileId,
 			&gotgbot.SendAnimationOpts{},
