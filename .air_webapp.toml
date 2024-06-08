@@ -4,20 +4,20 @@ tmp_dir = "tmp"
 
 [build]
   args_bin = []
-  bin = ";export $(grep -v '^#' .env | xargs); ./tmp/main"
-  cmd = "go build -o ./tmp/main ./cmd/bot/main.go"
+  bin = ";export $(grep -v '^#' .env_webapp | xargs); ./tmp/webapp"
+  cmd = "go build -o ./tmp/webapp ./cmd/webapp/main.go"
   delay = 0
-  exclude_dir = ["tmp"]
+  exclude_dir = ["tmp", "node_modules"]
   exclude_file = []
   exclude_regex = ["_test.go"]
   exclude_unchanged = false
   follow_symlink = false
   full_bin = ""
   include_dir = []
-  include_ext = ["go", "html"]
+  include_ext = ["go", "html", "css", "js"]
   include_file = []
   kill_delay = "0s"
-  log = "build-errors.log"
+  log = "webapp-build-errors.log"
   poll = false
   poll_interval = 0
   rerun = false
