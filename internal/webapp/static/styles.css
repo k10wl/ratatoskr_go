@@ -5,6 +5,17 @@
   user-select: none;
 }
 
+html {
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Roboto',
+    'Apple Color Emoji',
+    'Helvetica Neue',
+    sans-serif;
+}
+
 body {
   font-size: 100%;
   background-color: var(--tg-theme-bg-color);
