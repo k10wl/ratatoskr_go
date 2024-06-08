@@ -112,7 +112,8 @@ func (h handler) handlePhoto(next handlers.Response) handlers.Response {
 
 func (h handler) handleVideo(next handlers.Response) handlers.Response {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
-		_, err := b.SendVideo(
+		_, err := sendVideo(
+			b,
 			ctx.EffectiveMessage.GetSender().Id(),
 			ctx.EffectiveMessage.Video.FileId,
 			&gotgbot.SendVideoOpts{},

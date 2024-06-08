@@ -173,3 +173,60 @@ func TestSendPhoto(t *testing.T) {
 		t.Errorf("Did not send correct photo (%+v)", send)
 	}
 }
+
+func TestSendVideo(t *testing.T) {
+	type arg struct {
+		fileID gotgbot.InputFile
+		chatID int64
+	}
+	var send arg
+	calls := 0
+	nextCalled := false
+	fakeHandler := newHandler(fakeLogger())
+	original := sendVideo
+	defer func() {
+		sendVideo = original
+	}()
+	sendVideo = func(
+		b bot,
+		chatId int64,
+		fileID gotgbot.InputFile,
+		opts *gotgbot.SendVideoOpts,
+	) (*gotgbot.Message, error) {
+		calls++
+		send = arg{
+			chatID: chatId,
+			fileID: fileID,
+		}
+		return &gotgbot.Message{}, nil
+	}
+
+	mockNext := func(b *gotgbot.Bot, ctx *ext.Context) error {
+		nextCalled = true
+		return nil
+	}
+
+	err := fakeHandler.handleVideo(mockNext)(
+		&gotgbot.Bot{},
+		&ext.Context{
+			EffectiveMessage: &gotgbot.Message{
+				MessageId:  1,
+				SenderChat: &gotgbot.Chat{Id: 1},
+				Video:      &gotgbot.Video{FileId: "unique file id"},
+			},
+		},
+	)
+
+	if err != nil {
+		t.Errorf("Unexpected error in handleVideo")
+	}
+	if !nextCalled {
+		t.Errorf("Next was not called after handleVideo")
+	}
+	if calls != 1 {
+		t.Errorf("Wrong amount of send video calls (%d)", calls)
+	}
+	if !reflect.DeepEqual(send, arg{fileID: "unique file id", chatID: 1}) {
+		t.Errorf("Did not send correct video (%+v)", send)
+	}
+}
