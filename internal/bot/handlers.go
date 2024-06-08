@@ -14,7 +14,7 @@ import (
 
 type handler struct {
 	logger        *logger.Logger
-	mediaGroupMap map[string][]string
+	mediaGroupMap *mediaGroupMap
 }
 
 func newHandler(
@@ -22,7 +22,7 @@ func newHandler(
 ) *handler {
 	return &handler{
 		logger:        logger,
-		mediaGroupMap: map[string][]string{},
+		mediaGroupMap: newMediaGroupMap(),
 	}
 }
 
@@ -180,27 +180,31 @@ func (h *handler) receiveGroup(
 	interval time.Duration,
 	next handlers.Response,
 ) handlers.Response {
-	lastMessageID := map[string]int64{}
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
-		val, _ := h.mediaGroupMap[ctx.EffectiveMessage.MediaGroupId]
 		var mediaFileID string
+		var mediaType string
 		if ctx.EffectiveMessage.Video != nil {
 			mediaFileID = ctx.EffectiveMessage.Video.FileId
+			mediaType = "video"
 		} else {
 			mediaFileID = ctx.EffectiveMessage.Photo[0].FileId
+			mediaType = "photo"
 		}
-		h.mediaGroupMap[ctx.EffectiveMessage.MediaGroupId] = append(
-			val,
-			mediaFileID,
-		)
-		lastMessageID[ctx.EffectiveMessage.MediaGroupId] = ctx.EffectiveMessage.MessageId
+		h.mediaGroupMap.add(ctx.EffectiveMessage.MediaGroupId, item{
+			fileID:    mediaFileID,
+			mediaType: mediaType,
+			messageID: ctx.EffectiveMessage.MessageId,
+		})
 		go func() {
 			time.Sleep(interval)
-			if lastMessageID[ctx.EffectiveMessage.MediaGroupId] != ctx.EffectiveMessage.MessageId {
+			related := h.mediaGroupMap.get(ctx.EffectiveMessage.MediaGroupId)
+			if len(related) == 0 {
+				h.logger.Error("map is empty for " + ctx.EffectiveMessage.MediaGroupId)
 				return
 			}
-			// I WANT TO BREAK FREE
-			delete(lastMessageID, ctx.EffectiveMessage.MediaGroupId)
+			if related[0].messageID != ctx.EffectiveMessage.MessageId {
+				return
+			}
 			next(b, ctx)
 		}()
 		return nil
@@ -210,12 +214,18 @@ func (h *handler) receiveGroup(
 func (h handler) respondWithMediaGroup() handlers.Response {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
 		group := []gotgbot.InputMedia{}
-		for _, v := range h.mediaGroupMap {
-			for _, id := range v {
-				group = append(group, gotgbot.InputMediaPhoto{Media: id})
+		for _, item := range h.mediaGroupMap.get(ctx.EffectiveMessage.MediaGroupId) {
+			switch item.mediaType {
+			case "photo":
+				group = append(group, gotgbot.InputMediaPhoto{Media: item.fileID})
+			case "video":
+				group = append(group, gotgbot.InputMediaVideo{Media: item.fileID})
+			default:
+				h.logger.Error(fmt.Sprintf("unhandler media type in %+v", item))
 			}
 		}
 		sendMediaGroup(b, ctx.EffectiveSender.ChatId, group, &gotgbot.SendMediaGroupOpts{})
+		h.mediaGroupMap.remove(ctx.EffectiveMessage.MediaGroupId)
 		return nil
 	}
 }

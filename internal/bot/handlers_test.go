@@ -61,12 +61,19 @@ func TestReceiveGroupMedia(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	expected := map[string][]string{"1": {"1", "2", "3", "4"}}
-	if !reflect.DeepEqual(fakeHandler.mediaGroupMap, expected) {
+	expected := map[string][]item{
+		"1": {
+			{messageID: 1, mediaType: "photo", fileID: "1"},
+			{messageID: 2, mediaType: "photo", fileID: "2"},
+			{messageID: 3, mediaType: "photo", fileID: "3"},
+			{messageID: 4, mediaType: "photo", fileID: "4"},
+		},
+	}
+	if !reflect.DeepEqual(fakeHandler.mediaGroupMap.hashMap, expected) {
 		t.Errorf(
 			"Failed to receive media group\nexpected: %+v\nactual:   %+v",
 			expected,
-			fakeHandler.mediaGroupMap,
+			fakeHandler.mediaGroupMap.hashMap,
 		)
 	}
 	if calls != 1 {
@@ -76,6 +83,7 @@ func TestReceiveGroupMedia(t *testing.T) {
 			calls,
 		)
 	}
+
 }
 
 func TestRemoveOneEffectiveMessage(t *testing.T) {
@@ -296,8 +304,25 @@ func TestRespondWithMediaGroup(t *testing.T) {
 	var send arg
 	calls := 0
 	fakeHandler := newHandler(fakeLogger())
-	fakeHandler.mediaGroupMap = map[string][]string{
-		"1": {"file 1", "file 2", "file 3"},
+	fakeHandler.mediaGroupMap = newMediaGroupMap()
+	fakeHandler.mediaGroupMap.hashMap = map[string][]item{
+		"1": {
+			{
+				mediaType: "photo",
+				messageID: 1,
+				fileID:    "file 1",
+			},
+			{
+				mediaType: "photo",
+				messageID: 2,
+				fileID:    "file 2",
+			},
+			{
+				mediaType: "video",
+				messageID: 3,
+				fileID:    "file 3",
+			},
+		},
 	}
 	original := sendMediaGroup
 	defer func() {
@@ -323,6 +348,9 @@ func TestRespondWithMediaGroup(t *testing.T) {
 			EffectiveSender: &gotgbot.Sender{
 				ChatId: 1,
 			},
+			EffectiveMessage: &gotgbot.Message{
+				MediaGroupId: "1",
+			},
 		},
 	)
 
@@ -335,12 +363,15 @@ func TestRespondWithMediaGroup(t *testing.T) {
 	expected := arg{inputMedia: []gotgbot.InputMedia{
 		gotgbot.InputMediaPhoto{Media: "file 1"},
 		gotgbot.InputMediaPhoto{Media: "file 2"},
-		gotgbot.InputMediaPhoto{Media: "file 3"},
+		gotgbot.InputMediaVideo{Media: "file 3"},
 	}, chatID: 1}
 	if !reflect.DeepEqual(
 		send,
 		expected,
 	) {
 		t.Errorf("Did not send correct media group:\nexpected: %+v\nactual:   %+v", expected, send)
+	}
+	if len(fakeHandler.mediaGroupMap.hashMap) != 0 {
+		t.Error("did not clean media group after responding with message")
 	}
 }

@@ -30,3 +30,9 @@ func (mgm *mediaGroupMap) remove(key string) {
 	defer mgm.mu.Unlock()
 	delete(mgm.hashMap, key)
 }
+
+func (mgm *mediaGroupMap) get(key string) []item {
+	mgm.mu.Lock()
+	defer mgm.mu.Unlock()
+	return mgm.hashMap[key]
+}
