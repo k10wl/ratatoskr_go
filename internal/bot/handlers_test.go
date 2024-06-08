@@ -86,11 +86,11 @@ func TestRemoveOneEffectiveMessage(t *testing.T) {
 	var removed arg
 	calls := 0
 	fakeHandler := newHandler(fakeLogger())
-	original := DeleteMessage
+	original := deleteMessage
 	defer func() {
-		DeleteMessage = original
+		deleteMessage = original
 	}()
-	DeleteMessage = func(chatId, messageId int64, opts *gotgbot.DeleteMessageOpts) (bool, error) {
+	deleteMessage = func(b bot, chatId int64, messageId int64) (bool, error) {
 		calls++
 		removed = arg{
 			chatId:    chatId,
@@ -110,9 +110,59 @@ func TestRemoveOneEffectiveMessage(t *testing.T) {
 		t.Errorf("Unexpected error in removeOriginal")
 	}
 	if calls != 1 {
-		t.Errorf("Wrong amount of deletion calls")
+		t.Errorf("Wrong amount of deletion calls (%d)", calls)
 	}
 	if !reflect.DeepEqual(removed, arg{messageId: 1, chatId: 1}) {
-		t.Errorf("Did not remove correct original")
+		t.Errorf("Did not remove correct original (%+v)", removed)
 	}
 }
+
+func TestSendPhoto(t *testing.T) {
+	type arg struct {
+		fileID gotgbot.InputFile
+		chatID int64
+	}
+	var send arg
+	calls := 0
+	fakeHandler := newHandler(fakeLogger())
+	original := sendPhoto
+	defer func() {
+		sendPhoto = original
+	}()
+	sendPhoto = func(
+		b bot,
+		chatId int64,
+		fileID gotgbot.InputFile,
+		opts *gotgbot.SendPhotoOpts,
+	) (*gotgbot.Message, error) {
+		calls++
+		send = arg{
+			chatID: chatId,
+			fileID: fileID,
+		}
+		return &gotgbot.Message{}, nil
+	}
+
+	err := fakeHandler.handlePhoto(mockNext)(
+		&gotgbot.Bot{},
+		&ext.Context{
+			EffectiveMessage: &gotgbot.Message{
+				MessageId:  1,
+				SenderChat: &gotgbot.Chat{Id: 1},
+				Photo:      []gotgbot.PhotoSize{{FileId: "unique file id"}},
+			},
+		},
+	)
+
+	if err != nil {
+		t.Errorf("Unexpected error in handlePhoto")
+	}
+	if calls != 1 {
+		t.Errorf("Wrong amount of send image calls (%d)", calls)
+	}
+	if !reflect.DeepEqual(send, arg{fileID: "unique file id", chatID: 1}) {
+		t.Errorf("Did not send correct photo (%+v)", send)
+	}
+}
+
+func mockNext(b *gotgbot.Bot, ctx *ext.Context) error { return nil }

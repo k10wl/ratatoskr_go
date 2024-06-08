@@ -17,11 +17,6 @@ type handler struct {
 	mediaGroupMap map[string][]string
 }
 
-var bot = gotgbot.Bot{}
-var (
-	DeleteMessage = bot.DeleteMessage
-)
-
 func newHandler(
 	logger *logger.Logger,
 ) *handler {
@@ -99,7 +94,8 @@ func addHandlers(
 func (h handler) handlePhoto(next handlers.Response) handlers.Response {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
 		chatID := ctx.EffectiveMessage.GetSender().Id()
-		_, err := b.SendPhoto(
+		_, err := sendPhoto(
+			b,
 			chatID,
 			ctx.EffectiveMessage.Photo[0].FileId,
 			&gotgbot.SendPhotoOpts{},
@@ -163,10 +159,10 @@ func (h handler) handleEchoMessage(next handlers.Response) handlers.Response {
 
 func (h handler) removeOneEffectiveMessage() handlers.Response {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
-		ok, err := DeleteMessage(
+		ok, err := deleteMessage(
+			b,
 			ctx.EffectiveMessage.GetSender().Id(),
 			ctx.EffectiveMessage.MessageId,
-			&gotgbot.DeleteMessageOpts{},
 		)
 		if ok {
 			h.logger.Info("original message removed successfully")
