@@ -10,7 +10,7 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
-func Run(logger *logger.Logger, config *config.Config) error {
+func Run(logger *logger.Logger, config *config.BotConfig) error {
 	logger.Info("initializing bot...")
 	bot, err := gotgbot.NewBot(config.Token, nil)
 	if err != nil {

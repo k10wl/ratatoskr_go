@@ -19,7 +19,7 @@ func TestAdminOnly(t *testing.T) {
 
 	middleware := newMidlleware(
 		logger.NewLogger("test", &strings.Builder{}, &strings.Builder{}),
-		&config.Config{AdminIDs: []int64{1234}},
+		&config.BotConfig{AdminIDs: []int64{1234}},
 	)
 
 	middleware.adminOnly(fakeHandler)(

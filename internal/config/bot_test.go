@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestInit(t *testing.T) {
+func TestGetBotConfig(t *testing.T) {
 	type tc struct {
 		name        string
 		shouldError bool
@@ -23,6 +23,8 @@ func TestInit(t *testing.T) {
 					return ""
 				case "ADMIN_IDS":
 					return "1,2"
+				case "WEBAPP_URL":
+					return "https:// link is required"
 				default:
 					return ""
 				}
@@ -38,6 +40,26 @@ func TestInit(t *testing.T) {
 				case "TOKEN":
 					return "TOKEN"
 				case "ADMIN_IDS":
+					return ""
+				case "WEBAPP_URL":
+					return "https:// link is required"
+				default:
+					return ""
+				}
+			},
+			expected: nil,
+		},
+
+		{
+			name:        "should fail if webapp url is not provided",
+			shouldError: true,
+			getenv: func(s string) string {
+				switch s {
+				case "TOKEN":
+					return "TOKEN"
+				case "ADMIN_IDS":
+					return ""
+				case "WEBAPP_URL":
 					return ""
 				default:
 					return ""
@@ -55,11 +77,17 @@ func TestInit(t *testing.T) {
 					return "TOKEN"
 				case "ADMIN_IDS":
 					return "1,2"
+				case "WEBAPP_URL":
+					return "https:// link is required"
 				default:
 					return ""
 				}
 			},
-			expected: &BotConfig{Token: "TOKEN", AdminIDs: []int64{1, 2}},
+			expected: &BotConfig{
+				Token:     "TOKEN",
+				AdminIDs:  []int64{1, 2},
+				WebAppUrl: "https:// link is required",
+			},
 		},
 	}
 

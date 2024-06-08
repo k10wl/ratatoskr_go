@@ -29,7 +29,7 @@ func newHandler(
 func addHandlers(
 	dispatcher *ext.Dispatcher,
 	logger *logger.Logger,
-	config *config.Config,
+	config *config.BotConfig,
 ) {
 	handler := newHandler(logger)
 	middleware := newMidlleware(logger, config)
@@ -152,7 +152,28 @@ func (h handler) handleAnimation(next handlers.Response) handlers.Response {
 func (h handler) handleEchoMessage(next handlers.Response) handlers.Response {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
 		h.logger.Info(fmt.Sprintf("%+v", ctx.EffectiveMessage.GetChat()))
-		_, err := ctx.EffectiveMessage.Reply(b, ctx.EffectiveMessage.Text, nil)
+		_, err := b.SendMessage(
+			ctx.EffectiveSender.ChatId,
+			"======================================",
+			&gotgbot.SendMessageOpts{ReplyMarkup: gotgbot.InlineKeyboardMarkup{
+				InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
+					{
+						{
+							WebApp: &gotgbot.WebAppInfo{
+								Url: "https://k10wl.github.io/webcam-recorder/",
+							},
+							Text: "Cancel",
+						},
+						{
+							WebApp: &gotgbot.WebAppInfo{
+								Url: "https://k10wl.github.io/webcam-recorder/",
+							},
+							Text: "Select",
+						},
+					},
+				},
+			}},
+		)
 		if err != nil {
 			return h.logger.Error(fmt.Sprintf("failed to echo message: %v", err))
 		}

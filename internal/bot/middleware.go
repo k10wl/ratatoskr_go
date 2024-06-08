@@ -13,10 +13,10 @@ import (
 
 type middleware struct {
 	logger *logger.Logger
-	config *config.Config
+	config *config.BotConfig
 }
 
-func newMidlleware(logger *logger.Logger, config *config.Config) *middleware {
+func newMidlleware(logger *logger.Logger, config *config.BotConfig) *middleware {
 	return &middleware{
 		logger: logger,
 		config: config,

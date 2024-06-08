@@ -15,7 +15,7 @@ func run(
 	stdout io.Writer,
 	stderr io.Writer,
 ) error {
-	c, err := config.Init(getenv)
+	c, err := config.GetBotConfig(getenv)
 	if err != nil {
 		return err
 	}
