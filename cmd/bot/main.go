@@ -7,7 +7,6 @@ import (
 	"ratatoskr/internal/bot"
 	"ratatoskr/internal/config"
 	"ratatoskr/internal/logger"
-	"time"
 )
 
 func run(
@@ -25,8 +24,6 @@ func run(
 		return err
 	}
 
-	// TODO block exit forever
-	time.Sleep(time.Second * 99999999)
 	return nil
 }
 
