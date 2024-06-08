@@ -1,6 +1,9 @@
 package bot
 
-import "sync"
+import (
+	"slices"
+	"sync"
+)
 
 type item struct {
 	mediaType string
@@ -22,7 +25,17 @@ func newMediaGroupMap() *mediaGroupMap {
 func (mgm *mediaGroupMap) add(key string, value item) {
 	mgm.mu.Lock()
 	defer mgm.mu.Unlock()
-	mgm.hashMap[key] = append(mgm.hashMap[key], value)
+	items := mgm.hashMap[key]
+	i := slices.IndexFunc(items, func(el item) bool {
+		if el.messageID > value.messageID {
+			return true
+		}
+		return false
+	})
+	if i == -1 {
+		i = len(items)
+	}
+	mgm.hashMap[key] = slices.Insert(items, i, value)
 }
 
 func (mgm *mediaGroupMap) remove(key string) {

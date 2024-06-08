@@ -4,6 +4,7 @@ import "github.com/PaulSonOfLars/gotgbot/v2"
 
 type bot interface {
 	DeleteMessage(int64, int64, *gotgbot.DeleteMessageOpts) (bool, error)
+	DeleteMessages(int64, []int64, *gotgbot.DeleteMessagesOpts) (bool, error)
 	SendPhoto(int64, gotgbot.InputFile, *gotgbot.SendPhotoOpts) (*gotgbot.Message, error)
 	SendVideo(int64, gotgbot.InputFile, *gotgbot.SendVideoOpts) (*gotgbot.Message, error)
 	SendAnimation(int64, gotgbot.InputFile, *gotgbot.SendAnimationOpts) (*gotgbot.Message, error)
@@ -16,6 +17,7 @@ type bot interface {
 
 var (
 	deleteMessage  = botDeleteMessage
+	deleteMessages = botDeleteMessages
 	sendPhoto      = botSendPhoto
 	sendVideo      = botSendVideo
 	sendAnimation  = botSendAnimation
@@ -77,5 +79,11 @@ func botSendMediaGroup(
 func botDeleteMessage(b bot, chatId int64, messageId int64) (bool, error) {
 	return b.DeleteMessage(
 		chatId, messageId, &gotgbot.DeleteMessageOpts{},
+	)
+}
+
+func botDeleteMessages(b bot, chatId int64, messageIds []int64) (bool, error) {
+	return b.DeleteMessages(
+		chatId, messageIds, &gotgbot.DeleteMessagesOpts{},
 	)
 }

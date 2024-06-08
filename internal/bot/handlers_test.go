@@ -325,6 +325,7 @@ func TestRespondWithMediaGroup(t *testing.T) {
 		},
 	}
 	original := sendMediaGroup
+	nextCalled := false
 	defer func() {
 		sendMediaGroup = original
 	}()
@@ -342,7 +343,10 @@ func TestRespondWithMediaGroup(t *testing.T) {
 		return []gotgbot.Message{}, nil
 	}
 
-	err := fakeHandler.respondWithMediaGroup()(
+	err := fakeHandler.respondWithMediaGroup(func(b *gotgbot.Bot, ctx *ext.Context) error {
+		nextCalled = true
+		return nil
+	})(
 		&gotgbot.Bot{},
 		&ext.Context{
 			EffectiveSender: &gotgbot.Sender{
@@ -371,7 +375,67 @@ func TestRespondWithMediaGroup(t *testing.T) {
 	) {
 		t.Errorf("Did not send correct media group:\nexpected: %+v\nactual:   %+v", expected, send)
 	}
+	if !nextCalled {
+		t.Error("did not call next after clearing messages")
+	}
+}
+
+func TestRemoveEffectiveMediaGroup(t *testing.T) {
+	type arg struct {
+		messageId []int64
+		chatId    int64
+	}
+	removed := arg{}
+	calls := 0
+	fakeHandler := newHandler(fakeLogger())
+	original := deleteMessages
+	defer func() {
+		deleteMessages = original
+	}()
+	deleteMessages = func(b bot, chatId int64, messageId []int64) (bool, error) {
+		calls++
+		removed = arg{
+			chatId:    chatId,
+			messageId: messageId,
+		}
+		return true, nil
+	}
+	fakeHandler.mediaGroupMap.hashMap = map[string][]item{
+		"1": {
+			{
+				messageID: 1,
+				mediaType: "photo",
+				fileID:    "2",
+			},
+			{
+				messageID: 2,
+				mediaType: "video",
+				fileID:    "2",
+			},
+		},
+	}
+
+	err := fakeHandler.removeEffectiveMediaGroup()(&gotgbot.Bot{}, &ext.Context{
+		EffectiveChat: &gotgbot.Chat{
+			Id: 1,
+		},
+		EffectiveMessage: &gotgbot.Message{
+			MessageId:    1,
+			MediaGroupId: "1",
+			SenderChat:   &gotgbot.Chat{Id: 1},
+		},
+	})
+
+	if err != nil {
+		t.Errorf("Unexpected error in removeOriginal")
+	}
 	if len(fakeHandler.mediaGroupMap.hashMap) != 0 {
-		t.Error("did not clean media group after responding with message")
+		t.Errorf("Did not remove related media group from hash map")
+	}
+	if !reflect.DeepEqual(removed, arg{
+		chatId:    1,
+		messageId: []int64{1, 2},
+	}) {
+		t.Errorf("Did not remove correct media group, removed: %+v", removed)
 	}
 }

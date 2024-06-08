@@ -51,7 +51,9 @@ func addHandlers(
 			middleware.adminOnly(
 				handler.receiveGroup(
 					time.Millisecond*500,
-					handler.respondWithMediaGroup(),
+					handler.respondWithMediaGroup(
+						handler.removeEffectiveMediaGroup(),
+					),
 				),
 			),
 		),
@@ -211,7 +213,7 @@ func (h *handler) receiveGroup(
 	}
 }
 
-func (h handler) respondWithMediaGroup() handlers.Response {
+func (h handler) respondWithMediaGroup(next handlers.Response) handlers.Response {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
 		group := []gotgbot.InputMedia{}
 		for _, item := range h.mediaGroupMap.get(ctx.EffectiveMessage.MediaGroupId) {
@@ -225,6 +227,20 @@ func (h handler) respondWithMediaGroup() handlers.Response {
 			}
 		}
 		sendMediaGroup(b, ctx.EffectiveSender.ChatId, group, &gotgbot.SendMediaGroupOpts{})
+		return next(b, ctx)
+	}
+}
+
+func (h handler) removeEffectiveMediaGroup() handlers.Response {
+	return func(b *gotgbot.Bot, ctx *ext.Context) error {
+		toDelete := []int64{}
+		for _, v := range h.mediaGroupMap.get(ctx.EffectiveMessage.MediaGroupId) {
+			toDelete = append(toDelete, v.messageID)
+		}
+		_, err := deleteMessages(b, ctx.EffectiveChat.Id, toDelete)
+		if err != nil {
+			h.logger.Error(fmt.Sprintf("did not remove group media, reason: %+v", err))
+		}
 		h.mediaGroupMap.remove(ctx.EffectiveMessage.MediaGroupId)
 		return nil
 	}

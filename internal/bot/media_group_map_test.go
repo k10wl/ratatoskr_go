@@ -65,6 +65,47 @@ func TestMediaGroupMap(t *testing.T) {
 		},
 
 		{
+			name:    "should sort items when adding",
+			subject: newMediaGroupMap(),
+			operation: func(mgm *mediaGroupMap) {
+				mgm.add("1", item{
+					messageID: 3,
+					fileID:    "file id 3",
+					mediaType: "photo",
+				})
+				mgm.add("1", item{
+					messageID: 2,
+					fileID:    "file id 2",
+					mediaType: "photo",
+				})
+				mgm.add("1", item{
+					messageID: 1,
+					fileID:    "file id 1",
+					mediaType: "photo",
+				})
+			},
+			expected: map[string][]item{
+				"1": {
+					{
+						messageID: 1,
+						fileID:    "file id 1",
+						mediaType: "photo",
+					},
+					{
+						messageID: 2,
+						fileID:    "file id 2",
+						mediaType: "photo",
+					},
+					{
+						messageID: 3,
+						fileID:    "file id 3",
+						mediaType: "photo",
+					},
+				},
+			},
+		},
+
+		{
 			name: "should remove items from the map",
 			subject: &mediaGroupMap{
 				hashMap: map[string][]item{
