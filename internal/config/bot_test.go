@@ -58,7 +58,7 @@ func TestGetBotConfig(t *testing.T) {
 				case "TOKEN":
 					return "TOKEN"
 				case "ADMIN_IDS":
-					return ""
+					return "1234,7890"
 				case "WEBAPP_URL":
 					return ""
 				default:

@@ -23,6 +23,9 @@ func GetBotConfig(getenv func(string) string) (*BotConfig, error) {
 		return nil, fmt.Errorf("admin IDs must be set")
 	}
 	webAppUrl := getenv("WEBAPP_URL")
+	if webAppUrl == "" {
+		return nil, fmt.Errorf("required WEBAPP_URL was not provided")
+	}
 	return &BotConfig{
 		Token:     token,
 		AdminIDs:  adminIDs,
