@@ -15,12 +15,15 @@ import (
 type handler struct {
 	logger        *logger.Logger
 	mediaGroupMap *mediaGroupMap
+	config        *config.BotConfig
 }
 
 func newHandler(
 	logger *logger.Logger,
+	config *config.BotConfig,
 ) *handler {
 	return &handler{
+		config:        config,
 		logger:        logger,
 		mediaGroupMap: newMediaGroupMap(),
 	}
@@ -31,7 +34,7 @@ func addHandlers(
 	logger *logger.Logger,
 	config *config.BotConfig,
 ) {
-	handler := newHandler(logger)
+	handler := newHandler(logger, config)
 	middleware := newMidlleware(logger, config)
 
 	dispatcher.AddHandler(
@@ -160,13 +163,13 @@ func (h handler) handleEchoMessage(next handlers.Response) handlers.Response {
 					{
 						{
 							WebApp: &gotgbot.WebAppInfo{
-								Url: "https://k10wl.github.io/webcam-recorder/",
+								Url: h.config.WebAppUrl,
 							},
 							Text: "Cancel",
 						},
 						{
 							WebApp: &gotgbot.WebAppInfo{
-								Url: "https://k10wl.github.io/webcam-recorder/",
+								Url: h.config.WebAppUrl,
 							},
 							Text: "Select",
 						},
