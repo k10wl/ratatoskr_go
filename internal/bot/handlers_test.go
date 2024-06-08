@@ -287,3 +287,60 @@ func TestSendAnimation(t *testing.T) {
 		t.Errorf("Did not send correct animation (%+v)", send)
 	}
 }
+
+func TestRespondWithMediaGroup(t *testing.T) {
+	type arg struct {
+		inputMedia []gotgbot.InputMedia
+		chatID     int64
+	}
+	var send arg
+	calls := 0
+	fakeHandler := newHandler(fakeLogger())
+	fakeHandler.mediaGroupMap = map[string][]string{
+		"1": {"file 1", "file 2", "file 3"},
+	}
+	original := sendMediaGroup
+	defer func() {
+		sendMediaGroup = original
+	}()
+	sendMediaGroup = func(
+		b bot,
+		chatId int64,
+		inputMedia []gotgbot.InputMedia,
+		opts *gotgbot.SendMediaGroupOpts,
+	) ([]gotgbot.Message, error) {
+		calls++
+		send = arg{
+			chatID:     chatId,
+			inputMedia: inputMedia,
+		}
+		return []gotgbot.Message{}, nil
+	}
+
+	err := fakeHandler.respondWithMediaGroup()(
+		&gotgbot.Bot{},
+		&ext.Context{
+			EffectiveSender: &gotgbot.Sender{
+				ChatId: 1,
+			},
+		},
+	)
+
+	if err != nil {
+		t.Errorf("Unexpected error in handleMediaGroup")
+	}
+	if calls != 1 {
+		t.Errorf("Wrong amount of send media group calls (%d)", calls)
+	}
+	expected := arg{inputMedia: []gotgbot.InputMedia{
+		gotgbot.InputMediaPhoto{Media: "file 1"},
+		gotgbot.InputMediaPhoto{Media: "file 2"},
+		gotgbot.InputMediaPhoto{Media: "file 3"},
+	}, chatID: 1}
+	if !reflect.DeepEqual(
+		send,
+		expected,
+	) {
+		t.Errorf("Did not send correct media group:\nexpected: %+v\nactual:   %+v", expected, send)
+	}
+}

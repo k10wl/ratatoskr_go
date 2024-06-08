@@ -215,7 +215,7 @@ func (h handler) respondWithMediaGroup() handlers.Response {
 				group = append(group, gotgbot.InputMediaPhoto{Media: id})
 			}
 		}
-		b.SendMediaGroup(ctx.EffectiveSender.ChatId, group, &gotgbot.SendMediaGroupOpts{})
+		sendMediaGroup(b, ctx.EffectiveSender.ChatId, group, &gotgbot.SendMediaGroupOpts{})
 		return nil
 	}
 }

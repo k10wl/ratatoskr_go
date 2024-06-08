@@ -7,13 +7,19 @@ type bot interface {
 	SendPhoto(int64, gotgbot.InputFile, *gotgbot.SendPhotoOpts) (*gotgbot.Message, error)
 	SendVideo(int64, gotgbot.InputFile, *gotgbot.SendVideoOpts) (*gotgbot.Message, error)
 	SendAnimation(int64, gotgbot.InputFile, *gotgbot.SendAnimationOpts) (*gotgbot.Message, error)
+	SendMediaGroup(
+		int64,
+		[]gotgbot.InputMedia,
+		*gotgbot.SendMediaGroupOpts,
+	) ([]gotgbot.Message, error)
 }
 
 var (
-	deleteMessage = botDeleteMessage
-	sendPhoto     = botSendPhoto
-	sendVideo     = botSendVideo
-	sendAnimation = botSendAnimation
+	deleteMessage  = botDeleteMessage
+	sendPhoto      = botSendPhoto
+	sendVideo      = botSendVideo
+	sendAnimation  = botSendAnimation
+	sendMediaGroup = botSendMediaGroup
 )
 
 func botSendPhoto(
@@ -51,6 +57,19 @@ func botSendAnimation(
 	return b.SendAnimation(
 		chatId,
 		fileID,
+		opts,
+	)
+}
+
+func botSendMediaGroup(
+	b bot,
+	chatId int64,
+	inputMedia []gotgbot.InputMedia,
+	opts *gotgbot.SendMediaGroupOpts,
+) ([]gotgbot.Message, error) {
+	return b.SendMediaGroup(
+		chatId,
+		inputMedia,
 		opts,
 	)
 }
