@@ -20,6 +20,10 @@ func TestGetWebAppConfig(t *testing.T) {
 				switch s {
 				case "ADMIN_IDS":
 					return ""
+				case "IP":
+					return "127.0.0.1"
+				case "PORT":
+					return "8080"
 				default:
 					return ""
 				}
@@ -29,17 +33,61 @@ func TestGetWebAppConfig(t *testing.T) {
 		},
 
 		{
+			name: "should error if IP was not provided",
+			getenv: func(s string) string {
+				switch s {
+				case "ADMIN_IDS":
+					return "1234,7890"
+				case "IP":
+					return ""
+				case "PORT":
+					return "8080"
+				default:
+					return ""
+				}
+			},
+			shouldError: true,
+			expected:    &WepAppConfig{AdminIDs: []int64{1234, 7890}},
+		},
+
+		{
+			name: "should error if PORT was not provided",
+			getenv: func(s string) string {
+				switch s {
+				case "ADMIN_IDS":
+					return "1234,7890"
+				case "IP":
+					return "127.0.0.1"
+				case "PORT":
+					return ""
+				default:
+					return ""
+				}
+			},
+			shouldError: true,
+			expected:    &WepAppConfig{AdminIDs: []int64{1234, 7890}},
+		},
+
+		{
 			name: "should return expected config",
 			getenv: func(s string) string {
 				switch s {
 				case "ADMIN_IDS":
 					return "1234,7890"
+				case "IP":
+					return "127.0.0.1"
+				case "PORT":
+					return "8080"
 				default:
 					return ""
 				}
 			},
 			shouldError: false,
-			expected:    &WepAppConfig{AdminIDs: []int64{1234, 7890}},
+			expected: &WepAppConfig{
+				AdminIDs: []int64{1234, 7890},
+				IP:       "127.0.0.1",
+				PORT:     "8080",
+			},
 		},
 	}
 

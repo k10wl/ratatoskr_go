@@ -4,6 +4,8 @@ import "fmt"
 
 type WepAppConfig struct {
 	AdminIDs []int64
+	IP       string
+	PORT     string
 }
 
 func GetWebAppConfig(getenv func(string) string) (*WepAppConfig, error) {
@@ -15,5 +17,13 @@ func GetWebAppConfig(getenv func(string) string) (*WepAppConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &WepAppConfig{AdminIDs: adminIDs}, nil
+	ip := getenv("IP")
+	if ip == "" {
+		return nil, fmt.Errorf("required IP was not provided")
+	}
+	port := getenv("PORT")
+	if port == "" {
+		return nil, fmt.Errorf("required PORT was not provided")
+	}
+	return &WepAppConfig{AdminIDs: adminIDs, IP: ip, PORT: port}, nil
 }
