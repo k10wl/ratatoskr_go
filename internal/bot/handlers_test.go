@@ -124,6 +124,7 @@ func TestSendPhoto(t *testing.T) {
 	}
 	var send arg
 	calls := 0
+	nextCalled := false
 	fakeHandler := newHandler(fakeLogger())
 	original := sendPhoto
 	defer func() {
@@ -143,6 +144,11 @@ func TestSendPhoto(t *testing.T) {
 		return &gotgbot.Message{}, nil
 	}
 
+	mockNext := func(b *gotgbot.Bot, ctx *ext.Context) error {
+		nextCalled = true
+		return nil
+	}
+
 	err := fakeHandler.handlePhoto(mockNext)(
 		&gotgbot.Bot{},
 		&ext.Context{
@@ -157,6 +163,9 @@ func TestSendPhoto(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error in handlePhoto")
 	}
+	if !nextCalled {
+		t.Errorf("Next was not called after handlePhoto")
+	}
 	if calls != 1 {
 		t.Errorf("Wrong amount of send image calls (%d)", calls)
 	}
@@ -164,5 +173,3 @@ func TestSendPhoto(t *testing.T) {
 		t.Errorf("Did not send correct photo (%+v)", send)
 	}
 }
-
-func mockNext(b *gotgbot.Bot, ctx *ext.Context) error { return nil }
