@@ -55,7 +55,9 @@ func addHandlers(
 				handler.receiveGroup(
 					time.Millisecond*500,
 					handler.respondWithMediaGroup(
-						handler.removeEffectiveMediaGroup(),
+						handler.sendWebAppMarkup(
+							handler.removeEffectiveMediaGroup(),
+						),
 					),
 				),
 			),
@@ -67,7 +69,9 @@ func addHandlers(
 			message.Photo,
 			middleware.adminOnly(
 				handler.handlePhoto(
-					handler.removeOneEffectiveMessage(),
+					handler.sendWebAppMarkup(
+						handler.removeOneEffectiveMessage(),
+					),
 				),
 			),
 		),
@@ -78,7 +82,9 @@ func addHandlers(
 			message.Video,
 			middleware.adminOnly(
 				handler.handleVideo(
-					handler.removeOneEffectiveMessage(),
+					handler.sendWebAppMarkup(
+						handler.removeOneEffectiveMessage(),
+					),
 				),
 			),
 		),
@@ -89,11 +95,14 @@ func addHandlers(
 			message.Animation,
 			middleware.adminOnly(
 				handler.handleAnimation(
-					handler.removeOneEffectiveMessage(),
+					handler.sendWebAppMarkup(
+						handler.removeOneEffectiveMessage(),
+					),
 				),
 			),
 		),
 	)
+
 }
 
 func (h handler) handlePhoto(next handlers.Response) handlers.Response {
@@ -267,5 +276,39 @@ func (h handler) removeEffectiveMediaGroup() handlers.Response {
 		}
 		h.mediaGroupMap.remove(ctx.EffectiveMessage.MediaGroupId)
 		return nil
+	}
+}
+
+func (h handler) sendWebAppMarkup(next handlers.Response) handlers.Response {
+	return func(b *gotgbot.Bot, ctx *ext.Context) error {
+		url := h.config.WebAppUrl + "?message-id="
+		if ctx.EffectiveMessage.MediaGroupId != "" {
+			ids := h.mediaGroupMap.get(ctx.EffectiveMessage.MediaGroupId)
+			messageIds := ""
+			for i, id := range ids {
+				if i == 0 {
+					messageIds = fmt.Sprintf("%d", id.messageID)
+				} else {
+					messageIds = fmt.Sprintf("%s,%d", messageIds, id.messageID)
+				}
+			}
+			url += messageIds
+		} else {
+			url = fmt.Sprintf("%s%d", url, ctx.EffectiveMessage.MessageId)
+		}
+		sendMessage(b, ctx.EffectiveChat.Id, "========", &gotgbot.SendMessageOpts{
+
+			ReplyMarkup: gotgbot.InlineKeyboardMarkup{
+				InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
+					{
+						{
+							Text:   "WebApp",
+							WebApp: &gotgbot.WebAppInfo{Url: url},
+						},
+					},
+				},
+			},
+		})
+		return next(b, ctx)
 	}
 }

@@ -13,6 +13,7 @@ type bot interface {
 		[]gotgbot.InputMedia,
 		*gotgbot.SendMediaGroupOpts,
 	) ([]gotgbot.Message, error)
+	SendMessage(int64, string, *gotgbot.SendMessageOpts) (*gotgbot.Message, error)
 }
 
 var (
@@ -22,6 +23,7 @@ var (
 	sendVideo      = botSendVideo
 	sendAnimation  = botSendAnimation
 	sendMediaGroup = botSendMediaGroup
+	sendMessage    = botSendMessage
 )
 
 func botSendPhoto(
@@ -86,4 +88,13 @@ func botDeleteMessages(b bot, chatId int64, messageIds []int64) (bool, error) {
 	return b.DeleteMessages(
 		chatId, messageIds, &gotgbot.DeleteMessagesOpts{},
 	)
+}
+
+func botSendMessage(
+	b bot,
+	chatId int64,
+	message string,
+	opts *gotgbot.SendMessageOpts,
+) (*gotgbot.Message, error) {
+	return b.SendMessage(chatId, message, opts)
 }
