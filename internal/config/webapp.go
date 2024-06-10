@@ -1,6 +1,9 @@
 package config
 
-import "fmt"
+import (
+	"fmt"
+	"ratatoskr/internal/utils"
+)
 
 type WepAppConfig struct {
 	AdminIDs []int64
@@ -13,7 +16,7 @@ func GetWebAppConfig(getenv func(string) string) (*WepAppConfig, error) {
 	if stringAdminIDs == "" {
 		return nil, fmt.Errorf("required ADMIN_IDS was not provided")
 	}
-	adminIDs, err := stringToIntSlice(stringAdminIDs)
+	adminIDs, err := utils.StringToIntSlice(stringAdminIDs)
 	if err != nil {
 		return nil, err
 	}

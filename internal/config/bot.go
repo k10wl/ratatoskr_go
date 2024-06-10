@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"ratatoskr/internal/utils"
 )
 
 type BotConfig struct {
@@ -15,7 +16,7 @@ func GetBotConfig(getenv func(string) string) (*BotConfig, error) {
 	if token == "" {
 		return nil, fmt.Errorf("bot token not provided")
 	}
-	adminIDs, err := stringToIntSlice(getenv("ADMIN_IDS"))
+	adminIDs, err := utils.StringToIntSlice(getenv("ADMIN_IDS"))
 	if err != nil {
 		return nil, fmt.Errorf("error upon receiving admin IDs")
 	}

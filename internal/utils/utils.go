@@ -1,11 +1,11 @@
-package config
+package utils
 
 import (
 	"strconv"
 	"strings"
 )
 
-func stringToIntSlice(s string) ([]int64, error) {
+func StringToIntSlice(s string) ([]int64, error) {
 	splitted := strings.Split(s, ",")
 	ids := []int64{}
 	var err error

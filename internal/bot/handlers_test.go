@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"fmt"
 	"ratatoskr/internal/config"
 	"ratatoskr/internal/logger"
 	"reflect"
@@ -127,17 +128,20 @@ func TestRemoveOneEffectiveMessage(t *testing.T) {
 }
 
 func TestSendPhoto(t *testing.T) {
-	type arg struct {
+	type photoArg struct {
 		fileID gotgbot.InputFile
 		chatID int64
 	}
-	var send arg
-	calls := 0
+	var sendPhotoArg photoArg
+	var sendWebAppUrl string
 	nextCalled := false
+	createdMessageID := 1234
 	fakeHandler := newHandler(fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
-	original := sendPhoto
+	originalSendPhoto := sendPhoto
+	originalSendMessage := sendMessage
 	defer func() {
-		sendPhoto = original
+		sendPhoto = originalSendPhoto
+		sendMessage = originalSendMessage
 	}()
 	sendPhoto = func(
 		b bot,
@@ -145,11 +149,21 @@ func TestSendPhoto(t *testing.T) {
 		fileID gotgbot.InputFile,
 		opts *gotgbot.SendPhotoOpts,
 	) (*gotgbot.Message, error) {
-		calls++
-		send = arg{
+		sendPhotoArg = photoArg{
 			chatID: chatId,
 			fileID: fileID,
 		}
+		return &gotgbot.Message{
+			MessageId: int64(createdMessageID),
+		}, nil
+	}
+	sendMessage = func(
+		b bot,
+		chatId int64,
+		message string,
+		opts *gotgbot.SendMessageOpts,
+	) (*gotgbot.Message, error) {
+		sendWebAppUrl = opts.ReplyMarkup.(gotgbot.InlineKeyboardMarkup).InlineKeyboard[0][0].WebApp.Url
 		return &gotgbot.Message{}, nil
 	}
 
@@ -162,10 +176,10 @@ func TestSendPhoto(t *testing.T) {
 		&gotgbot.Bot{},
 		&ext.Context{
 			EffectiveMessage: &gotgbot.Message{
-				MessageId:  1,
-				SenderChat: &gotgbot.Chat{Id: 1},
-				Photo:      []gotgbot.PhotoSize{{FileId: "unique file id"}},
+				MessageId: 1,
+				Photo:     []gotgbot.PhotoSize{{FileId: "unique file id"}},
 			},
+			EffectiveChat: &gotgbot.Chat{Id: 1},
 		},
 	)
 
@@ -175,11 +189,16 @@ func TestSendPhoto(t *testing.T) {
 	if !nextCalled {
 		t.Errorf("Next was not called after handlePhoto")
 	}
-	if calls != 1 {
-		t.Errorf("Wrong amount of send image calls (%d)", calls)
+	expectedWebAppUrl := fmt.Sprintf("%s?message-id=%d", webAppUrl, createdMessageID)
+	if sendWebAppUrl != expectedWebAppUrl {
+		t.Errorf(
+			"Did not send correct webApp message-id query params\nexpected: %v\nactual:   %v",
+			expectedWebAppUrl,
+			sendWebAppUrl,
+		)
 	}
-	if !reflect.DeepEqual(send, arg{fileID: "unique file id", chatID: 1}) {
-		t.Errorf("Did not send correct photo (%+v)", send)
+	if !reflect.DeepEqual(sendPhotoArg, photoArg{fileID: "unique file id", chatID: 1}) {
+		t.Errorf("Did not send correct photo (%+v)", sendPhotoArg)
 	}
 }
 
@@ -190,6 +209,8 @@ func TestSendVideo(t *testing.T) {
 	}
 	var send arg
 	calls := 0
+	createdMessageID := 1234
+	var sendWebAppUrl string
 	nextCalled := false
 	fakeHandler := newHandler(fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
 	original := sendVideo
@@ -207,7 +228,18 @@ func TestSendVideo(t *testing.T) {
 			chatID: chatId,
 			fileID: fileID,
 		}
-		return &gotgbot.Message{}, nil
+		return &gotgbot.Message{
+			MessageId: int64(createdMessageID),
+		}, nil
+	}
+	sendMessage = func(
+		b bot,
+		chatId int64,
+		message string,
+		opts *gotgbot.SendMessageOpts,
+	) (*gotgbot.Message, error) {
+		sendWebAppUrl = opts.ReplyMarkup.(gotgbot.InlineKeyboardMarkup).InlineKeyboard[0][0].WebApp.Url
+		return nil, nil
 	}
 
 	mockNext := func(b *gotgbot.Bot, ctx *ext.Context) error {
@@ -218,10 +250,10 @@ func TestSendVideo(t *testing.T) {
 	err := fakeHandler.handleVideo(mockNext)(
 		&gotgbot.Bot{},
 		&ext.Context{
+			EffectiveChat: &gotgbot.Chat{Id: 1},
 			EffectiveMessage: &gotgbot.Message{
-				MessageId:  1,
-				SenderChat: &gotgbot.Chat{Id: 1},
-				Video:      &gotgbot.Video{FileId: "unique file id"},
+				MessageId: 1,
+				Video:     &gotgbot.Video{FileId: "unique file id"},
 			},
 		},
 	)
@@ -232,8 +264,13 @@ func TestSendVideo(t *testing.T) {
 	if !nextCalled {
 		t.Errorf("Next was not called after handleVideo")
 	}
-	if calls != 1 {
-		t.Errorf("Wrong amount of send video calls (%d)", calls)
+	expectedWebAppUrl := fmt.Sprintf("%s?message-id=%d", webAppUrl, createdMessageID)
+	if sendWebAppUrl != expectedWebAppUrl {
+		t.Errorf(
+			"Did not send correct webApp message-id query params\nexpected: %v\nactual:   %v",
+			expectedWebAppUrl,
+			sendWebAppUrl,
+		)
 	}
 	if !reflect.DeepEqual(send, arg{fileID: "unique file id", chatID: 1}) {
 		t.Errorf("Did not send correct video (%+v)", send)
@@ -247,6 +284,8 @@ func TestSendAnimation(t *testing.T) {
 	}
 	var send arg
 	calls := 0
+	createdMessageID := 1234
+	var sendWebAppUrl string
 	nextCalled := false
 	fakeHandler := newHandler(fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
 	original := sendAnimation
@@ -264,7 +303,17 @@ func TestSendAnimation(t *testing.T) {
 			chatID: chatId,
 			fileID: fileID,
 		}
-		return &gotgbot.Message{}, nil
+		return &gotgbot.Message{MessageId: int64(createdMessageID)}, nil
+	}
+
+	sendMessage = func(
+		b bot,
+		chatId int64,
+		message string,
+		opts *gotgbot.SendMessageOpts,
+	) (*gotgbot.Message, error) {
+		sendWebAppUrl = opts.ReplyMarkup.(gotgbot.InlineKeyboardMarkup).InlineKeyboard[0][0].WebApp.Url
+		return nil, nil
 	}
 
 	mockNext := func(b *gotgbot.Bot, ctx *ext.Context) error {
@@ -275,10 +324,10 @@ func TestSendAnimation(t *testing.T) {
 	err := fakeHandler.handleAnimation(mockNext)(
 		&gotgbot.Bot{},
 		&ext.Context{
+			EffectiveChat: &gotgbot.Chat{Id: 1},
 			EffectiveMessage: &gotgbot.Message{
-				MessageId:  1,
-				SenderChat: &gotgbot.Chat{Id: 1},
-				Animation:  &gotgbot.Animation{FileId: "unique file id"},
+				MessageId: 1,
+				Animation: &gotgbot.Animation{FileId: "unique file id"},
 			},
 		},
 	)
@@ -289,8 +338,13 @@ func TestSendAnimation(t *testing.T) {
 	if !nextCalled {
 		t.Errorf("Next was not called after handleAnimation")
 	}
-	if calls != 1 {
-		t.Errorf("Wrong amount of send animation calls (%d)", calls)
+	expectedWebAppUrl := fmt.Sprintf("%s?message-id=%d", webAppUrl, createdMessageID)
+	if sendWebAppUrl != expectedWebAppUrl {
+		t.Errorf(
+			"Did not send correct webApp message-id query params\nexpected: %v\nactual:   %v",
+			expectedWebAppUrl,
+			sendWebAppUrl,
+		)
 	}
 	if !reflect.DeepEqual(send, arg{fileID: "unique file id", chatID: 1}) {
 		t.Errorf("Did not send correct animation (%+v)", send)
@@ -303,7 +357,16 @@ func TestRespondWithMediaGroup(t *testing.T) {
 		chatID     int64
 	}
 	var send arg
-	calls := 0
+	var sendWebAppUrl string
+	sendMessage = func(
+		b bot,
+		chatId int64,
+		message string,
+		opts *gotgbot.SendMessageOpts,
+	) (*gotgbot.Message, error) {
+		sendWebAppUrl = opts.ReplyMarkup.(gotgbot.InlineKeyboardMarkup).InlineKeyboard[0][0].WebApp.Url
+		return nil, nil
+	}
 	fakeHandler := newHandler(fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
 	fakeHandler.mediaGroupMap = newMediaGroupMap()
 	fakeHandler.mediaGroupMap.hashMap = map[string][]item{
@@ -336,12 +399,15 @@ func TestRespondWithMediaGroup(t *testing.T) {
 		inputMedia []gotgbot.InputMedia,
 		opts *gotgbot.SendMediaGroupOpts,
 	) ([]gotgbot.Message, error) {
-		calls++
 		send = arg{
 			chatID:     chatId,
 			inputMedia: inputMedia,
 		}
-		return []gotgbot.Message{}, nil
+		return []gotgbot.Message{
+			{MessageId: 1},
+			{MessageId: 2},
+			{MessageId: 3},
+		}, nil
 	}
 
 	err := fakeHandler.respondWithMediaGroup(func(b *gotgbot.Bot, ctx *ext.Context) error {
@@ -350,8 +416,8 @@ func TestRespondWithMediaGroup(t *testing.T) {
 	})(
 		&gotgbot.Bot{},
 		&ext.Context{
-			EffectiveSender: &gotgbot.Sender{
-				ChatId: 1,
+			EffectiveChat: &gotgbot.Chat{
+				Id: 1,
 			},
 			EffectiveMessage: &gotgbot.Message{
 				MediaGroupId: "1",
@@ -361,9 +427,6 @@ func TestRespondWithMediaGroup(t *testing.T) {
 
 	if err != nil {
 		t.Errorf("Unexpected error in handleMediaGroup")
-	}
-	if calls != 1 {
-		t.Errorf("Wrong amount of send media group calls (%d)", calls)
 	}
 	expected := arg{inputMedia: []gotgbot.InputMedia{
 		gotgbot.InputMediaPhoto{Media: "file 1"},
@@ -375,6 +438,14 @@ func TestRespondWithMediaGroup(t *testing.T) {
 		expected,
 	) {
 		t.Errorf("Did not send correct media group:\nexpected: %+v\nactual:   %+v", expected, send)
+	}
+	expectedWebAppUrl := fmt.Sprintf("%s?message-id=%v", webAppUrl, "1,2,3")
+	if sendWebAppUrl != expectedWebAppUrl {
+		t.Errorf(
+			"Did not send correct webApp message-id query params\nexpected: %v\nactual:   %v",
+			expectedWebAppUrl,
+			sendWebAppUrl,
+		)
 	}
 	if !nextCalled {
 		t.Error("did not call next after clearing messages")
@@ -447,7 +518,7 @@ func TestSendWebAppMarkup(t *testing.T) {
 	type tc struct {
 		name     string
 		expected string
-		run      func() (url string, nextCalled bool)
+		run      func() string
 	}
 
 	original := sendMessage
@@ -458,131 +529,67 @@ func TestSendWebAppMarkup(t *testing.T) {
 	table := []tc{
 		{
 			name: "should create webapp with url for one photo",
-			run: func() (string, bool) {
+			run: func() string {
 				var url string
-				nextCalled := false
 				sendMessage = func(b bot, chatId int64, message string, opts *gotgbot.SendMessageOpts) (*gotgbot.Message, error) {
 					url = opts.ReplyMarkup.(gotgbot.InlineKeyboardMarkup).InlineKeyboard[0][0].WebApp.Url
 					return nil, nil
 				}
 				fakeHandler := newHandler(fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
-				fakeHandler.sendWebAppMarkup(func(b *gotgbot.Bot, ctx *ext.Context) error {
-					nextCalled = true
-					return nil
-				})(&gotgbot.Bot{}, &ext.Context{
-					EffectiveMessage: &gotgbot.Message{
-						MessageId: 1234,
-					},
-					EffectiveChat: &gotgbot.Chat{
-						Id: 1,
-					},
-				})
-				return url, nextCalled
+				fakeHandler.sendWebAppMarkup(&gotgbot.Bot{}, 1, []int64{1234})
+				return url
 			},
 			expected: webAppUrl + "?message-id=1234",
 		},
 
 		{
 			name: "should create webapp with url for one animation",
-			run: func() (string, bool) {
+			run: func() string {
 				var url string
-				nextCalled := false
 				sendMessage = func(b bot, chatId int64, message string, opts *gotgbot.SendMessageOpts) (*gotgbot.Message, error) {
 					url = opts.ReplyMarkup.(gotgbot.InlineKeyboardMarkup).InlineKeyboard[0][0].WebApp.Url
 					return nil, nil
 				}
 				fakeHandler := newHandler(fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
-				fakeHandler.sendWebAppMarkup(func(b *gotgbot.Bot, ctx *ext.Context) error {
-					nextCalled = true
-					return nil
-				})(&gotgbot.Bot{}, &ext.Context{
-					EffectiveMessage: &gotgbot.Message{
-						MessageId: 1234,
-					},
-					EffectiveChat: &gotgbot.Chat{
-						Id: 1,
-					},
-				})
-				return url, nextCalled
+				fakeHandler.sendWebAppMarkup(&gotgbot.Bot{}, 1, []int64{1234})
+				return url
 			},
 			expected: webAppUrl + "?message-id=1234",
 		},
 
 		{
 			name: "should create webapp with url for one video",
-			run: func() (string, bool) {
+			run: func() string {
 				var url string
-				nextCalled := false
 				sendMessage = func(b bot, chatId int64, message string, opts *gotgbot.SendMessageOpts) (*gotgbot.Message, error) {
 					url = opts.ReplyMarkup.(gotgbot.InlineKeyboardMarkup).InlineKeyboard[0][0].WebApp.Url
 					return nil, nil
 				}
 				fakeHandler := newHandler(fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
-				fakeHandler.sendWebAppMarkup(func(b *gotgbot.Bot, ctx *ext.Context) error {
-					nextCalled = true
-					return nil
-				})(&gotgbot.Bot{}, &ext.Context{
-					EffectiveMessage: &gotgbot.Message{
-						MessageId: 1234,
-					},
-					EffectiveChat: &gotgbot.Chat{
-						Id: 1,
-					},
-				})
-				return url, nextCalled
+				fakeHandler.sendWebAppMarkup(&gotgbot.Bot{}, 1, []int64{1234})
+				return url
 			},
 			expected: webAppUrl + "?message-id=1234",
 		},
 
 		{
 			name: "should create webapp with url for group",
-			run: func() (string, bool) {
+			run: func() string {
 				var url string
-				nextCalled := false
 				sendMessage = func(b bot, chatId int64, message string, opts *gotgbot.SendMessageOpts) (*gotgbot.Message, error) {
 					url = opts.ReplyMarkup.(gotgbot.InlineKeyboardMarkup).InlineKeyboard[0][0].WebApp.Url
 					return nil, nil
 				}
 				fakeHandler := newHandler(fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
-				fakeHandler.mediaGroupMap.hashMap = map[string][]item{
-					"1": {
-						{
-							messageID: 1234,
-							mediaType: "photo",
-							fileID:    "uniq",
-						},
-						{
-							messageID: 1235,
-							mediaType: "animation",
-							fileID:    "uniq",
-						},
-						{
-							messageID: 1236,
-							mediaType: "video",
-							fileID:    "uniq",
-						},
-					},
-				}
-				fakeHandler.sendWebAppMarkup(func(b *gotgbot.Bot, ctx *ext.Context) error {
-					nextCalled = true
-					return nil
-				})(&gotgbot.Bot{}, &ext.Context{
-					EffectiveMessage: &gotgbot.Message{
-						MessageId:    1234,
-						MediaGroupId: "1",
-					},
-					EffectiveChat: &gotgbot.Chat{
-						Id: 1,
-					},
-				})
-				return url, nextCalled
+				fakeHandler.sendWebAppMarkup(&gotgbot.Bot{}, 1, []int64{1234, 1235, 1236})
+				return url
 			},
 			expected: webAppUrl + "?message-id=1234,1235,1236",
 		},
 	}
 
 	for _, test := range table {
-		actual, nextCalled := test.run()
+		actual := test.run()
 		if test.expected != actual {
 			t.Errorf(
 				"%s - unexpected webapp url\nexpected: %s\nactual:   %s",
@@ -590,9 +597,6 @@ func TestSendWebAppMarkup(t *testing.T) {
 				test.expected,
 				actual,
 			)
-		}
-		if !nextCalled {
-			t.Errorf("%s - next was not called", test.name)
 		}
 	}
 }

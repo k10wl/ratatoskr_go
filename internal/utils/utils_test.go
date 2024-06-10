@@ -1,4 +1,4 @@
-package config
+package utils
 
 import (
 	"reflect"
@@ -40,7 +40,7 @@ func TestStringToIntSlice(t *testing.T) {
 	}
 
 	for _, test := range table {
-		actual, err := stringToIntSlice(test.input)
+		actual, err := StringToIntSlice(test.input)
 		if err != nil {
 			t.Errorf("unexpected error in %s: %+v", test.name, err)
 		}

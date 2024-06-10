@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"ratatoskr/internal/config"
 	"ratatoskr/internal/logger"
+	"strings"
 	"time"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
@@ -55,9 +56,7 @@ func addHandlers(
 				handler.receiveGroup(
 					time.Millisecond*500,
 					handler.respondWithMediaGroup(
-						handler.sendWebAppMarkup(
-							handler.removeEffectiveMediaGroup(),
-						),
+						handler.removeEffectiveMediaGroup(),
 					),
 				),
 			),
@@ -69,9 +68,7 @@ func addHandlers(
 			message.Photo,
 			middleware.adminOnly(
 				handler.handlePhoto(
-					handler.sendWebAppMarkup(
-						handler.removeOneEffectiveMessage(),
-					),
+					handler.removeOneEffectiveMessage(),
 				),
 			),
 		),
@@ -82,9 +79,7 @@ func addHandlers(
 			message.Video,
 			middleware.adminOnly(
 				handler.handleVideo(
-					handler.sendWebAppMarkup(
-						handler.removeOneEffectiveMessage(),
-					),
+					handler.removeOneEffectiveMessage(),
 				),
 			),
 		),
@@ -95,9 +90,7 @@ func addHandlers(
 			message.Animation,
 			middleware.adminOnly(
 				handler.handleAnimation(
-					handler.sendWebAppMarkup(
-						handler.removeOneEffectiveMessage(),
-					),
+					handler.removeOneEffectiveMessage(),
 				),
 			),
 		),
@@ -107,16 +100,21 @@ func addHandlers(
 
 func (h handler) handlePhoto(next handlers.Response) handlers.Response {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
-		chatID := ctx.EffectiveMessage.GetSender().Id()
-		_, err := sendPhoto(
+		m, err := sendPhoto(
 			b,
-			chatID,
+			ctx.EffectiveChat.Id,
 			ctx.EffectiveMessage.Photo[0].FileId,
 			&gotgbot.SendPhotoOpts{},
 		)
 		if err != nil {
 			return h.logger.Error(
 				fmt.Sprintf("failed to reply with photo, error: %v", err),
+			)
+		}
+		err = h.sendWebAppMarkup(b, ctx.EffectiveChat.Id, []int64{m.MessageId})
+		if err != nil {
+			return h.logger.Error(
+				fmt.Sprintf("failed to reply with webapp, error: %v", err),
 			)
 		}
 		h.logger.Info(fmt.Sprintf("photo message reply success"))
@@ -126,9 +124,9 @@ func (h handler) handlePhoto(next handlers.Response) handlers.Response {
 
 func (h handler) handleVideo(next handlers.Response) handlers.Response {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
-		_, err := sendVideo(
+		m, err := sendVideo(
 			b,
-			ctx.EffectiveMessage.GetSender().Id(),
+			ctx.EffectiveChat.Id,
 			ctx.EffectiveMessage.Video.FileId,
 			&gotgbot.SendVideoOpts{},
 		)
@@ -137,17 +135,22 @@ func (h handler) handleVideo(next handlers.Response) handlers.Response {
 				fmt.Sprintf("failed to reply with video, error: %v", err),
 			)
 		}
+		err = h.sendWebAppMarkup(b, ctx.EffectiveChat.Id, []int64{m.MessageId})
 		h.logger.Info(fmt.Sprintf("video message reply success"))
+		if err != nil {
+			return h.logger.Error(
+				fmt.Sprintf("failed to reply with video, error: %v", err),
+			)
+		}
 		return next(b, ctx)
 	}
 }
 
 func (h handler) handleAnimation(next handlers.Response) handlers.Response {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
-		chatID := ctx.EffectiveMessage.GetSender().Id()
-		_, err := sendAnimation(
+		m, err := sendAnimation(
 			b,
-			chatID,
+			ctx.EffectiveChat.Id,
 			ctx.EffectiveMessage.Animation.FileId,
 			&gotgbot.SendAnimationOpts{},
 		)
@@ -156,40 +159,13 @@ func (h handler) handleAnimation(next handlers.Response) handlers.Response {
 				fmt.Sprintf("failed to reply with animation, error: %v", err),
 			)
 		}
-		h.logger.Info(fmt.Sprintf("animation message reply success"))
-		return next(b, ctx)
-	}
-}
-
-func (h handler) handleEchoMessage(next handlers.Response) handlers.Response {
-	return func(b *gotgbot.Bot, ctx *ext.Context) error {
-		h.logger.Info(fmt.Sprintf("%+v", ctx.EffectiveMessage.GetChat()))
-		_, err := b.SendMessage(
-			ctx.EffectiveSender.ChatId,
-			"======================================",
-			&gotgbot.SendMessageOpts{ReplyMarkup: gotgbot.InlineKeyboardMarkup{
-				InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
-					{
-						{
-							WebApp: &gotgbot.WebAppInfo{
-								Url: h.config.WebAppUrl,
-							},
-							Text: "Cancel",
-						},
-						{
-							WebApp: &gotgbot.WebAppInfo{
-								Url: h.config.WebAppUrl,
-							},
-							Text: "Select",
-						},
-					},
-				},
-			}},
-		)
+		err = h.sendWebAppMarkup(b, ctx.EffectiveChat.Id, []int64{m.MessageId})
 		if err != nil {
-			return h.logger.Error(fmt.Sprintf("failed to echo message: %v", err))
+			return h.logger.Error(
+				fmt.Sprintf("failed to reply with animation, error: %v", err),
+			)
 		}
-		h.logger.Info("echo message reply success")
+		h.logger.Info(fmt.Sprintf("animation message reply success"))
 		return next(b, ctx)
 	}
 }
@@ -259,7 +235,22 @@ func (h handler) respondWithMediaGroup(next handlers.Response) handlers.Response
 				h.logger.Error(fmt.Sprintf("unhandler media type in %+v", item))
 			}
 		}
-		sendMediaGroup(b, ctx.EffectiveSender.ChatId, group, &gotgbot.SendMediaGroupOpts{})
+		messages, err := sendMediaGroup(
+			b,
+			ctx.EffectiveChat.Id,
+			group,
+			&gotgbot.SendMediaGroupOpts{},
+		)
+		if err != nil {
+			return h.logger.Error(
+				fmt.Sprintf("failed to reply with animation, error: %v", err),
+			)
+		}
+		messageIDs := []int64{}
+		for _, message := range messages {
+			messageIDs = append(messageIDs, message.MessageId)
+		}
+		h.sendWebAppMarkup(b, ctx.EffectiveChat.Id, messageIDs)
 		return next(b, ctx)
 	}
 }
@@ -279,36 +270,26 @@ func (h handler) removeEffectiveMediaGroup() handlers.Response {
 	}
 }
 
-func (h handler) sendWebAppMarkup(next handlers.Response) handlers.Response {
-	return func(b *gotgbot.Bot, ctx *ext.Context) error {
-		url := h.config.WebAppUrl + "?message-id="
-		if ctx.EffectiveMessage.MediaGroupId != "" {
-			ids := h.mediaGroupMap.get(ctx.EffectiveMessage.MediaGroupId)
-			messageIds := ""
-			for i, id := range ids {
-				if i == 0 {
-					messageIds = fmt.Sprintf("%d", id.messageID)
-				} else {
-					messageIds = fmt.Sprintf("%s,%d", messageIds, id.messageID)
-				}
-			}
-			url += messageIds
-		} else {
-			url = fmt.Sprintf("%s%d", url, ctx.EffectiveMessage.MessageId)
-		}
-		sendMessage(b, ctx.EffectiveChat.Id, "========", &gotgbot.SendMessageOpts{
-
-			ReplyMarkup: gotgbot.InlineKeyboardMarkup{
-				InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
+func (h handler) sendWebAppMarkup(b bot, chatID int64, messageID []int64) error {
+	str := []string{}
+	for _, id := range messageID {
+		str = append(str, fmt.Sprint(id))
+	}
+	_, err := sendMessage(b, chatID, "========", &gotgbot.SendMessageOpts{
+		ReplyMarkup: gotgbot.InlineKeyboardMarkup{
+			InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
+				{
 					{
-						{
-							Text:   "WebApp",
-							WebApp: &gotgbot.WebAppInfo{Url: url},
-						},
+						Text: "WebApp",
+						WebApp: &gotgbot.WebAppInfo{Url: fmt.Sprintf(
+							"%s?message-id=%v",
+							h.config.WebAppUrl,
+							strings.Join(str, ","),
+						)},
 					},
 				},
 			},
-		})
-		return next(b, ctx)
-	}
+		},
+	})
+	return err
 }
