@@ -25,6 +25,8 @@ func TestGetBotConfig(t *testing.T) {
 					return "1,2"
 				case "WEBAPP_URL":
 					return "https:// link is required"
+				case "RECEIVER_ID":
+					return "1234"
 				default:
 					return ""
 				}
@@ -43,6 +45,8 @@ func TestGetBotConfig(t *testing.T) {
 					return ""
 				case "WEBAPP_URL":
 					return "https:// link is required"
+				case "RECEIVER_ID":
+					return "1234"
 				default:
 					return ""
 				}
@@ -60,6 +64,28 @@ func TestGetBotConfig(t *testing.T) {
 				case "ADMIN_IDS":
 					return "1234,7890"
 				case "WEBAPP_URL":
+					return ""
+				case "RECEIVER_ID":
+					return "1234"
+				default:
+					return ""
+				}
+			},
+			expected: nil,
+		},
+
+		{
+			name:        "should fail if RECEIVER_ID is not provided",
+			shouldError: true,
+			getenv: func(s string) string {
+				switch s {
+				case "TOKEN":
+					return "TOKEN"
+				case "ADMIN_IDS":
+					return "1234,7890"
+				case "WEBAPP_URL":
+					return "https:// link is required"
+				case "RECEIVER_ID":
 					return ""
 				default:
 					return ""
@@ -79,14 +105,17 @@ func TestGetBotConfig(t *testing.T) {
 					return "1,2"
 				case "WEBAPP_URL":
 					return "https:// link is required"
+				case "RECEIVER_ID":
+					return "1234"
 				default:
 					return ""
 				}
 			},
 			expected: &BotConfig{
-				Token:     "TOKEN",
-				AdminIDs:  []int64{1, 2},
-				WebAppUrl: "https:// link is required",
+				Token:      "TOKEN",
+				AdminIDs:   []int64{1, 2},
+				WebAppUrl:  "https:// link is required",
+				ReceiverID: 1234,
 			},
 		},
 	}

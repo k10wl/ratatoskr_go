@@ -3,12 +3,14 @@ package config
 import (
 	"fmt"
 	"ratatoskr/internal/utils"
+	"strconv"
 )
 
 type BotConfig struct {
-	Token     string
-	AdminIDs  []int64
-	WebAppUrl string
+	Token      string
+	AdminIDs   []int64
+	WebAppUrl  string
+	ReceiverID int64
 }
 
 func GetBotConfig(getenv func(string) string) (*BotConfig, error) {
@@ -27,9 +29,18 @@ func GetBotConfig(getenv func(string) string) (*BotConfig, error) {
 	if webAppUrl == "" {
 		return nil, fmt.Errorf("required WEBAPP_URL was not provided")
 	}
+	receiverString := getenv("RECEIVER_ID")
+	if receiverString == "" {
+		return nil, fmt.Errorf("required RECEIVER_ID was not provided")
+	}
+	receiverID, err := strconv.Atoi(receiverString)
+	if err != nil {
+		return nil, fmt.Errorf("required RECEIVER_ID could not be parsed to int")
+	}
 	return &BotConfig{
-		Token:     token,
-		AdminIDs:  adminIDs,
-		WebAppUrl: webAppUrl,
+		Token:      token,
+		AdminIDs:   adminIDs,
+		WebAppUrl:  webAppUrl,
+		ReceiverID: int64(receiverID),
 	}, nil
 }
