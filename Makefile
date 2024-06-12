@@ -10,6 +10,15 @@ test:
 	@echo "Running tests"
 	@go test ./...
 
+test-cover:
+	@echo "running test cover"
+	@go test -v -coverprofile cover.out ./...
+	@go tool cover -html cover.out -o cover.html
+	@rm cover.out
+	@open cover.html
+	@sleep 1
+	@rm cover.html
+
 build: bot webapp
 
 bot:
