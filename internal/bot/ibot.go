@@ -14,16 +14,18 @@ type bot interface {
 		*gotgbot.SendMediaGroupOpts,
 	) ([]gotgbot.Message, error)
 	SendMessage(int64, string, *gotgbot.SendMessageOpts) (*gotgbot.Message, error)
+	EditMessageReplyMarkup(*gotgbot.EditMessageReplyMarkupOpts) (*gotgbot.Message, bool, error)
 }
 
 var (
-	deleteMessage  = botDeleteMessage
-	deleteMessages = botDeleteMessages
-	sendPhoto      = botSendPhoto
-	sendVideo      = botSendVideo
-	sendAnimation  = botSendAnimation
-	sendMediaGroup = botSendMediaGroup
-	sendMessage    = botSendMessage
+	deleteMessage          = botDeleteMessage
+	deleteMessages         = botDeleteMessages
+	sendPhoto              = botSendPhoto
+	sendVideo              = botSendVideo
+	sendAnimation          = botSendAnimation
+	sendMediaGroup         = botSendMediaGroup
+	sendMessage            = botSendMessage
+	editMessageReplyMarkup = botEditMessageReplyMarkup
 )
 
 func botSendPhoto(
@@ -97,4 +99,11 @@ func botSendMessage(
 	opts *gotgbot.SendMessageOpts,
 ) (*gotgbot.Message, error) {
 	return b.SendMessage(chatId, message, opts)
+}
+
+func botEditMessageReplyMarkup(
+	b bot,
+	opts *gotgbot.EditMessageReplyMarkupOpts,
+) (*gotgbot.Message, bool, error) {
+	return b.EditMessageReplyMarkup(opts)
 }

@@ -275,15 +275,23 @@ func (h handler) sendWebAppMarkup(b bot, chatID int64, messageID []int64) error 
 	for _, id := range messageID {
 		str = append(str, fmt.Sprint(id))
 	}
-	_, err := sendMessage(b, chatID, "========", &gotgbot.SendMessageOpts{
+	m, err := sendMessage(b, chatID, "* * * * * * * *", nil)
+	if err != nil {
+		return h.logger.Error(err.Error())
+	}
+	h.logger.Info("send message")
+	_, _, err = editMessageReplyMarkup(b, &gotgbot.EditMessageReplyMarkupOpts{
+		ChatId:    chatID,
+		MessageId: m.MessageId,
 		ReplyMarkup: gotgbot.InlineKeyboardMarkup{
 			InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
 				{
 					{
 						Text: "WebApp",
 						WebApp: &gotgbot.WebAppInfo{Url: fmt.Sprintf(
-							"%s?message-id=%v",
+							"%s?message-id=%v&media-id=%v",
 							h.config.WebAppUrl,
+							m.MessageId,
 							strings.Join(str, ","),
 						)},
 					},
@@ -291,5 +299,8 @@ func (h handler) sendWebAppMarkup(b bot, chatID int64, messageID []int64) error 
 			},
 		},
 	})
+	if err != nil {
+		return h.logger.Error(err.Error())
+	}
 	return err
 }

@@ -139,9 +139,11 @@ func TestSendPhoto(t *testing.T) {
 	fakeHandler := newHandler(fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
 	originalSendPhoto := sendPhoto
 	originalSendMessage := sendMessage
+	originalEditMessageReplyMarkup := editMessageReplyMarkup
 	defer func() {
 		sendPhoto = originalSendPhoto
 		sendMessage = originalSendMessage
+		editMessageReplyMarkup = originalEditMessageReplyMarkup
 	}()
 	sendPhoto = func(
 		b bot,
@@ -163,8 +165,11 @@ func TestSendPhoto(t *testing.T) {
 		message string,
 		opts *gotgbot.SendMessageOpts,
 	) (*gotgbot.Message, error) {
-		sendWebAppUrl = opts.ReplyMarkup.(gotgbot.InlineKeyboardMarkup).InlineKeyboard[0][0].WebApp.Url
-		return &gotgbot.Message{}, nil
+		return &gotgbot.Message{MessageId: 1}, nil
+	}
+	editMessageReplyMarkup = func(b bot, opts *gotgbot.EditMessageReplyMarkupOpts) (*gotgbot.Message, bool, error) {
+		sendWebAppUrl = opts.ReplyMarkup.InlineKeyboard[0][0].WebApp.Url
+		return nil, true, nil
 	}
 
 	mockNext := func(b *gotgbot.Bot, ctx *ext.Context) error {
@@ -189,7 +194,7 @@ func TestSendPhoto(t *testing.T) {
 	if !nextCalled {
 		t.Errorf("Next was not called after handlePhoto")
 	}
-	expectedWebAppUrl := fmt.Sprintf("%s?message-id=%d", webAppUrl, createdMessageID)
+	expectedWebAppUrl := fmt.Sprintf("%s?message-id=1&media-id=%d", webAppUrl, createdMessageID)
 	if sendWebAppUrl != expectedWebAppUrl {
 		t.Errorf(
 			"Did not send correct webApp message-id query params\nexpected: %v\nactual:   %v",
@@ -213,9 +218,11 @@ func TestSendVideo(t *testing.T) {
 	var sendWebAppUrl string
 	nextCalled := false
 	fakeHandler := newHandler(fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
-	original := sendVideo
+	originalSendVideo := sendVideo
+	originalEditMessageReplyMarkup := editMessageReplyMarkup
 	defer func() {
-		sendVideo = original
+		sendVideo = originalSendVideo
+		editMessageReplyMarkup = originalEditMessageReplyMarkup
 	}()
 	sendVideo = func(
 		b bot,
@@ -238,8 +245,11 @@ func TestSendVideo(t *testing.T) {
 		message string,
 		opts *gotgbot.SendMessageOpts,
 	) (*gotgbot.Message, error) {
-		sendWebAppUrl = opts.ReplyMarkup.(gotgbot.InlineKeyboardMarkup).InlineKeyboard[0][0].WebApp.Url
-		return nil, nil
+		return &gotgbot.Message{MessageId: 1}, nil
+	}
+	editMessageReplyMarkup = func(b bot, opts *gotgbot.EditMessageReplyMarkupOpts) (*gotgbot.Message, bool, error) {
+		sendWebAppUrl = opts.ReplyMarkup.InlineKeyboard[0][0].WebApp.Url
+		return nil, true, nil
 	}
 
 	mockNext := func(b *gotgbot.Bot, ctx *ext.Context) error {
@@ -264,7 +274,7 @@ func TestSendVideo(t *testing.T) {
 	if !nextCalled {
 		t.Errorf("Next was not called after handleVideo")
 	}
-	expectedWebAppUrl := fmt.Sprintf("%s?message-id=%d", webAppUrl, createdMessageID)
+	expectedWebAppUrl := fmt.Sprintf("%s?message-id=1&media-id=%d", webAppUrl, createdMessageID)
 	if sendWebAppUrl != expectedWebAppUrl {
 		t.Errorf(
 			"Did not send correct webApp message-id query params\nexpected: %v\nactual:   %v",
@@ -288,9 +298,11 @@ func TestSendAnimation(t *testing.T) {
 	var sendWebAppUrl string
 	nextCalled := false
 	fakeHandler := newHandler(fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
-	original := sendAnimation
+	originalSendAnimation := sendAnimation
+	originalEditMessageReplyMarkup := editMessageReplyMarkup
 	defer func() {
-		sendAnimation = original
+		sendAnimation = originalSendAnimation
+		editMessageReplyMarkup = originalEditMessageReplyMarkup
 	}()
 	sendAnimation = func(
 		b bot,
@@ -312,8 +324,11 @@ func TestSendAnimation(t *testing.T) {
 		message string,
 		opts *gotgbot.SendMessageOpts,
 	) (*gotgbot.Message, error) {
-		sendWebAppUrl = opts.ReplyMarkup.(gotgbot.InlineKeyboardMarkup).InlineKeyboard[0][0].WebApp.Url
-		return nil, nil
+		return &gotgbot.Message{MessageId: 1}, nil
+	}
+	editMessageReplyMarkup = func(b bot, opts *gotgbot.EditMessageReplyMarkupOpts) (*gotgbot.Message, bool, error) {
+		sendWebAppUrl = opts.ReplyMarkup.InlineKeyboard[0][0].WebApp.Url
+		return nil, true, nil
 	}
 
 	mockNext := func(b *gotgbot.Bot, ctx *ext.Context) error {
@@ -338,7 +353,7 @@ func TestSendAnimation(t *testing.T) {
 	if !nextCalled {
 		t.Errorf("Next was not called after handleAnimation")
 	}
-	expectedWebAppUrl := fmt.Sprintf("%s?message-id=%d", webAppUrl, createdMessageID)
+	expectedWebAppUrl := fmt.Sprintf("%s?message-id=1&media-id=%d", webAppUrl, createdMessageID)
 	if sendWebAppUrl != expectedWebAppUrl {
 		t.Errorf(
 			"Did not send correct webApp message-id query params\nexpected: %v\nactual:   %v",
@@ -364,8 +379,7 @@ func TestRespondWithMediaGroup(t *testing.T) {
 		message string,
 		opts *gotgbot.SendMessageOpts,
 	) (*gotgbot.Message, error) {
-		sendWebAppUrl = opts.ReplyMarkup.(gotgbot.InlineKeyboardMarkup).InlineKeyboard[0][0].WebApp.Url
-		return nil, nil
+		return &gotgbot.Message{MessageId: 1}, nil
 	}
 	fakeHandler := newHandler(fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
 	fakeHandler.mediaGroupMap = newMediaGroupMap()
@@ -389,9 +403,11 @@ func TestRespondWithMediaGroup(t *testing.T) {
 		},
 	}
 	original := sendMediaGroup
+	originalEditMessageReplyMarkup := editMessageReplyMarkup
 	nextCalled := false
 	defer func() {
 		sendMediaGroup = original
+		editMessageReplyMarkup = originalEditMessageReplyMarkup
 	}()
 	sendMediaGroup = func(
 		b bot,
@@ -408,6 +424,10 @@ func TestRespondWithMediaGroup(t *testing.T) {
 			{MessageId: 2},
 			{MessageId: 3},
 		}, nil
+	}
+	editMessageReplyMarkup = func(b bot, opts *gotgbot.EditMessageReplyMarkupOpts) (*gotgbot.Message, bool, error) {
+		sendWebAppUrl = opts.ReplyMarkup.InlineKeyboard[0][0].WebApp.Url
+		return nil, true, nil
 	}
 
 	err := fakeHandler.respondWithMediaGroup(func(b *gotgbot.Bot, ctx *ext.Context) error {
@@ -439,7 +459,7 @@ func TestRespondWithMediaGroup(t *testing.T) {
 	) {
 		t.Errorf("Did not send correct media group:\nexpected: %+v\nactual:   %+v", expected, send)
 	}
-	expectedWebAppUrl := fmt.Sprintf("%s?message-id=%v", webAppUrl, "1,2,3")
+	expectedWebAppUrl := fmt.Sprintf("%s?message-id=1&media-id=%v", webAppUrl, "1,2,3")
 	if sendWebAppUrl != expectedWebAppUrl {
 		t.Errorf(
 			"Did not send correct webApp message-id query params\nexpected: %v\nactual:   %v",
@@ -521,9 +541,12 @@ func TestSendWebAppMarkup(t *testing.T) {
 		run      func() string
 	}
 
-	original := sendMessage
+	originalSendMessage := sendMessage
+	originalEditMessageReplyMarkup := editMessageReplyMarkup
+
 	defer func() {
-		sendMessage = original
+		sendMessage = originalSendMessage
+		editMessageReplyMarkup = originalEditMessageReplyMarkup
 	}()
 
 	table := []tc{
@@ -532,14 +555,18 @@ func TestSendWebAppMarkup(t *testing.T) {
 			run: func() string {
 				var url string
 				sendMessage = func(b bot, chatId int64, message string, opts *gotgbot.SendMessageOpts) (*gotgbot.Message, error) {
-					url = opts.ReplyMarkup.(gotgbot.InlineKeyboardMarkup).InlineKeyboard[0][0].WebApp.Url
-					return nil, nil
+					return &gotgbot.Message{MessageId: 1}, nil
+				}
+				editMessageReplyMarkup = func(b bot, opts *gotgbot.EditMessageReplyMarkupOpts) (*gotgbot.Message, bool, error) {
+
+					url = opts.ReplyMarkup.InlineKeyboard[0][0].WebApp.Url
+					return nil, true, nil
 				}
 				fakeHandler := newHandler(fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
 				fakeHandler.sendWebAppMarkup(&gotgbot.Bot{}, 1, []int64{1234})
 				return url
 			},
-			expected: webAppUrl + "?message-id=1234",
+			expected: webAppUrl + "?message-id=1&media-id=1234",
 		},
 
 		{
@@ -547,44 +574,60 @@ func TestSendWebAppMarkup(t *testing.T) {
 			run: func() string {
 				var url string
 				sendMessage = func(b bot, chatId int64, message string, opts *gotgbot.SendMessageOpts) (*gotgbot.Message, error) {
-					url = opts.ReplyMarkup.(gotgbot.InlineKeyboardMarkup).InlineKeyboard[0][0].WebApp.Url
-					return nil, nil
+					return &gotgbot.Message{MessageId: 1}, nil
+				}
+				editMessageReplyMarkup = func(b bot, opts *gotgbot.EditMessageReplyMarkupOpts) (*gotgbot.Message, bool, error) {
+
+					url = opts.ReplyMarkup.InlineKeyboard[0][0].WebApp.Url
+					return nil, true, nil
 				}
 				fakeHandler := newHandler(fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
 				fakeHandler.sendWebAppMarkup(&gotgbot.Bot{}, 1, []int64{1234})
 				return url
 			},
-			expected: webAppUrl + "?message-id=1234",
+			expected: webAppUrl + "?message-id=1&media-id=1234",
 		},
 
 		{
 			name: "should create webapp with url for one video",
 			run: func() string {
 				var url string
+
 				sendMessage = func(b bot, chatId int64, message string, opts *gotgbot.SendMessageOpts) (*gotgbot.Message, error) {
-					url = opts.ReplyMarkup.(gotgbot.InlineKeyboardMarkup).InlineKeyboard[0][0].WebApp.Url
-					return nil, nil
+					return &gotgbot.Message{MessageId: 1}, nil
 				}
+				editMessageReplyMarkup = func(b bot, opts *gotgbot.EditMessageReplyMarkupOpts) (*gotgbot.Message, bool, error) {
+
+					url = opts.ReplyMarkup.InlineKeyboard[0][0].WebApp.Url
+					return nil, true, nil
+				}
+
 				fakeHandler := newHandler(fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
 				fakeHandler.sendWebAppMarkup(&gotgbot.Bot{}, 1, []int64{1234})
 				return url
 			},
-			expected: webAppUrl + "?message-id=1234",
+			expected: webAppUrl + "?message-id=1&media-id=1234",
 		},
 
 		{
 			name: "should create webapp with url for group",
 			run: func() string {
 				var url string
+
 				sendMessage = func(b bot, chatId int64, message string, opts *gotgbot.SendMessageOpts) (*gotgbot.Message, error) {
-					url = opts.ReplyMarkup.(gotgbot.InlineKeyboardMarkup).InlineKeyboard[0][0].WebApp.Url
-					return nil, nil
+					return &gotgbot.Message{MessageId: 1}, nil
 				}
+				editMessageReplyMarkup = func(b bot, opts *gotgbot.EditMessageReplyMarkupOpts) (*gotgbot.Message, bool, error) {
+
+					url = opts.ReplyMarkup.InlineKeyboard[0][0].WebApp.Url
+					return nil, true, nil
+				}
+
 				fakeHandler := newHandler(fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
 				fakeHandler.sendWebAppMarkup(&gotgbot.Bot{}, 1, []int64{1234, 1235, 1236})
 				return url
 			},
-			expected: webAppUrl + "?message-id=1234,1235,1236",
+			expected: webAppUrl + "?message-id=1&media-id=1234,1235,1236",
 		},
 	}
 
