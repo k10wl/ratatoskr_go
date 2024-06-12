@@ -12,12 +12,12 @@ test:
 
 test-cover:
 	@echo "running test cover"
-	@go test -v -coverprofile cover.out ./...
-	@go tool cover -html cover.out -o cover.html
-	@rm cover.out
-	@open cover.html
+	@go test -v -coverprofile ./tmp/cover.out ./...
+	@go tool cover -html ./tmp/cover.out -o ./tmp/cover.html
+	@rm ./tmp/cover.out
+	@open ./tmp/cover.html
 	@sleep 1
-	@rm cover.html
+	@rm ./tmp/cover.html
 
 build: bot webapp
 
