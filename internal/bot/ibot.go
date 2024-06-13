@@ -15,6 +15,13 @@ type bot interface {
 	) ([]gotgbot.Message, error)
 	SendMessage(int64, string, *gotgbot.SendMessageOpts) (*gotgbot.Message, error)
 	EditMessageReplyMarkup(*gotgbot.EditMessageReplyMarkupOpts) (*gotgbot.Message, bool, error)
+	EditMessageCaption(opts *gotgbot.EditMessageCaptionOpts) (*gotgbot.Message, bool, error)
+	CopyMessages(
+		chatId int64,
+		fromChatId int64,
+		messageIds []int64,
+		opts *gotgbot.CopyMessagesOpts,
+	) ([]gotgbot.MessageId, error)
 }
 
 var (
@@ -26,6 +33,8 @@ var (
 	sendMediaGroup         = botSendMediaGroup
 	sendMessage            = botSendMessage
 	editMessageReplyMarkup = botEditMessageReplyMarkup
+	editMessageCaption     = botEditMessageCaption
+	copyMessages           = botCopyMessages
 )
 
 func botSendPhoto(
@@ -106,4 +115,21 @@ func botEditMessageReplyMarkup(
 	opts *gotgbot.EditMessageReplyMarkupOpts,
 ) (*gotgbot.Message, bool, error) {
 	return b.EditMessageReplyMarkup(opts)
+}
+
+func botEditMessageCaption(
+	b bot,
+	opts *gotgbot.EditMessageCaptionOpts,
+) (*gotgbot.Message, bool, error) {
+	return b.EditMessageCaption(opts)
+}
+
+func botCopyMessages(
+	b bot,
+	chatId int64,
+	fromChatId int64,
+	messageIds []int64,
+	opts *gotgbot.CopyMessagesOpts,
+) ([]gotgbot.MessageId, error) {
+	return b.CopyMessages(chatId, fromChatId, messageIds, opts)
 }

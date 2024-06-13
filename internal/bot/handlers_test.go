@@ -643,3 +643,145 @@ func TestSendWebAppMarkup(t *testing.T) {
 		}
 	}
 }
+
+func TestHandleWebAppData(t *testing.T) {
+	type editCaptionsResult struct {
+		chatID    int64
+		messageID int64
+		caption   string
+	}
+	type copyMessagesResult struct {
+		from       int64
+		receiver   int64
+		messageIDs []int64
+	}
+	type deleteMessagesResult struct {
+		chatID     int64
+		massageIDs []int64
+	}
+	type result struct {
+		editCaption    editCaptionsResult
+		copyMessages   copyMessagesResult
+		deleteMessages deleteMessagesResult
+	}
+	type tc struct {
+		name     string
+		ctx      *ext.Context
+		call     func(ctx *ext.Context) result
+		expected result
+	}
+
+	originalEditMessageCaptionOpts := editMessageCaption
+	originalDeleteMessages := deleteMessages
+	originalCopyMessages := copyMessages
+	defer func() {
+		editMessageCaption = originalEditMessageCaptionOpts
+		deleteMessages = originalDeleteMessages
+		copyMessages = originalCopyMessages
+	}()
+	var res result
+	deleteMessages = func(b bot, chatId int64, messageIds []int64) (bool, error) {
+		res.deleteMessages.chatID = chatId
+		res.deleteMessages.massageIDs = messageIds
+		return true, nil
+	}
+	copyMessages = func(b bot, chatId, fromChatId int64, messageIds []int64, opts *gotgbot.CopyMessagesOpts) ([]gotgbot.MessageId, error) {
+		res.copyMessages.from = fromChatId
+		res.copyMessages.receiver = chatId
+		res.copyMessages.messageIDs = messageIds
+		return []gotgbot.MessageId{}, nil
+	}
+	editMessageCaption = func(b bot, opts *gotgbot.EditMessageCaptionOpts) (*gotgbot.Message, bool, error) {
+		res.editCaption.chatID = opts.ChatId
+		res.editCaption.messageID = opts.MessageId
+		res.editCaption.caption = opts.Caption
+		return nil, true, nil
+	}
+	fh := newHandler(fakeLogger(), &config.BotConfig{
+		ReceiverID: 7890,
+	})
+
+	table := []tc{
+		{
+			name: "edit one caption and copy one message",
+			ctx: &ext.Context{
+				EffectiveChat: &gotgbot.Chat{
+					Id: 1,
+				},
+				EffectiveMessage: &gotgbot.Message{
+					MessageId: 3,
+					WebAppData: &gotgbot.WebAppData{
+						Data: `{"tags": ["#tag1", "#tag2", "#tag3"], "mediaIds": "1", "messageId": "2"}`,
+					}},
+			},
+			call: func(ctx *ext.Context) result {
+				res = result{}
+				fh.handleWebAppData()(&gotgbot.Bot{}, ctx)
+				return res
+			},
+			expected: result{
+				editCaption: editCaptionsResult{
+					chatID:    1,
+					messageID: 1,
+					caption:   "#tag1\n#tag2\n#tag3",
+				},
+				copyMessages: copyMessagesResult{
+					from:       1,
+					receiver:   7890,
+					messageIDs: []int64{1},
+				},
+				deleteMessages: deleteMessagesResult{
+					chatID:     1,
+					massageIDs: []int64{2, 3},
+				},
+			},
+		},
+
+		{
+			name: "edit one caption and copy multiple messages",
+			ctx: &ext.Context{
+				EffectiveChat: &gotgbot.Chat{
+					Id: 1,
+				},
+				EffectiveMessage: &gotgbot.Message{
+					MessageId: 3,
+					WebAppData: &gotgbot.WebAppData{
+						Data: `{"tags": ["#tag1", "#tag2", "#tag3"], "mediaIds": "1,2,3", "messageId": "2"}`,
+					}},
+			},
+			call: func(ctx *ext.Context) result {
+				res = result{}
+				fh.handleWebAppData()(&gotgbot.Bot{}, ctx)
+				return res
+			},
+			expected: result{
+				editCaption: editCaptionsResult{
+					chatID:    1,
+					messageID: 1,
+					caption:   "#tag1\n#tag2\n#tag3",
+				},
+				copyMessages: copyMessagesResult{
+					from:       1,
+					receiver:   7890,
+					messageIDs: []int64{1, 2, 3},
+				},
+				deleteMessages: deleteMessagesResult{
+					chatID:     1,
+					massageIDs: []int64{2, 3},
+				},
+			},
+		},
+	}
+
+	for _, test := range table {
+		actual := test.call(test.ctx)
+		if !reflect.DeepEqual(test.expected, actual) {
+			t.Errorf(
+				"Unexpected result - %s\nexpected: %+v\nactual:   %+v",
+				test.name,
+				test.expected,
+				actual,
+			)
+		}
+	}
+}

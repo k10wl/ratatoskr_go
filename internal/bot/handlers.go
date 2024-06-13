@@ -1,9 +1,12 @@
 package bot
 
 import (
+	"encoding/json"
 	"fmt"
 	"ratatoskr/internal/config"
 	"ratatoskr/internal/logger"
+	"ratatoskr/internal/utils"
+	"strconv"
 	"strings"
 	"time"
 
@@ -39,14 +42,9 @@ func addHandlers(
 	middleware := newMidlleware(logger, config)
 
 	dispatcher.AddHandler(
-		handlers.NewMessage(
-			message.Text,
-			middleware.adminOnly(
-				handler.handleEchoMessage(
-					handler.removeOneEffectiveMessage(),
-				),
-			),
-		),
+		handlers.NewMessage(func(msg *gotgbot.Message) bool {
+			return msg.WebAppData != nil
+		}, handler.handleWebAppData()),
 	)
 
 	dispatcher.AddHandler(
@@ -303,4 +301,48 @@ func (h handler) sendWebAppMarkup(b bot, chatID int64, messageID []int64) error 
 		return h.logger.Error(err.Error())
 	}
 	return err
+}
+
+func (h handler) handleWebAppData() handlers.Response {
+	type data struct {
+		MediaIDs  string   `json:"mediaIds,required"`
+		MessageID string   `json:"messageId,required"`
+		Tags      []string `json:"tags,required"`
+	}
+	return func(b *gotgbot.Bot, ctx *ext.Context) error {
+		var d data
+		err := json.Unmarshal([]byte(ctx.EffectiveMessage.WebAppData.Data), &d)
+		if err != nil {
+			return h.logger.Error(err.Error())
+		}
+		mediaIDs, err := utils.StringToIntSlice(d.MediaIDs)
+		if err != nil {
+			return h.logger.Error(err.Error())
+		}
+		_, _, err = editMessageCaption(b, &gotgbot.EditMessageCaptionOpts{
+			ChatId:    ctx.EffectiveChat.Id,
+			MessageId: mediaIDs[0],
+			Caption:   strings.Join(d.Tags, "\n"),
+		})
+		if err != nil {
+			return h.logger.Error(err.Error())
+		}
+		_, err = copyMessages(b, h.config.ReceiverID, ctx.EffectiveChat.Id, mediaIDs, nil)
+		if err != nil {
+			return h.logger.Error(err.Error())
+		}
+		messageId, err := strconv.Atoi(d.MessageID)
+		if err != nil {
+			return h.logger.Error(err.Error())
+		}
+		_, err = deleteMessages(
+			b,
+			ctx.EffectiveChat.Id,
+			[]int64{int64(messageId), ctx.EffectiveMessage.MessageId},
+		)
+		if err != nil {
+			return h.logger.Error(err.Error())
+		}
+		return nil
+	}
 }
