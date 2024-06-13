@@ -324,7 +324,8 @@ func (h handler) handleWebAppData() handlers.Response {
 			MessageId: mediaIDs[0],
 			Caption:   strings.Join(d.Tags, "\n"),
 		})
-		if err != nil {
+		if err != nil &&
+			!strings.Contains(err.Error(), "are exactly the same as a current content") {
 			return h.logger.Error(err.Error())
 		}
 		_, err = copyMessages(b, h.config.ReceiverID, ctx.EffectiveChat.Id, mediaIDs, nil)
