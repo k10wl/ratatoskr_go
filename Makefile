@@ -27,7 +27,7 @@ bot:
 
 webapp:
 	@echo "Building webapp"
-	@go build -o ./bin/webapp ./cmd/bot
+	@go build -o ./bin/webapp ./cmd/webapp
 
 dev-bot:
 	@echo "Running bot with air for live reloading"
