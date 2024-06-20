@@ -273,30 +273,28 @@ func (h handler) sendWebAppMarkup(b bot, chatID int64, messageID []int64) error 
 	for _, id := range messageID {
 		str = append(str, fmt.Sprint(id))
 	}
-	m, err := sendMessage(b, chatID, "* * * * * * * *", nil)
+	m, err := sendMessage(b, chatID, "* * *", &gotgbot.SendMessageOpts{})
 	if err != nil {
 		return h.logger.Error(err.Error())
 	}
-	h.logger.Info("send message")
-	_, _, err = editMessageReplyMarkup(b, &gotgbot.EditMessageReplyMarkupOpts{
-		ChatId:    chatID,
-		MessageId: m.MessageId,
-		ReplyMarkup: gotgbot.InlineKeyboardMarkup{
-			InlineKeyboard: [][]gotgbot.InlineKeyboardButton{
-				{
-					{
-						Text: "WebApp",
-						WebApp: &gotgbot.WebAppInfo{Url: fmt.Sprintf(
-							"%s?message-id=%v&media-id=%v",
-							h.config.WebAppUrl,
-							m.MessageId,
-							strings.Join(str, ","),
-						)},
-					},
-				},
+	_, err = sendMessage(b, chatID, "* * *", &gotgbot.SendMessageOpts{
+		ReplyMarkup: gotgbot.ReplyKeyboardMarkup{
+			ResizeKeyboard: true,
+			IsPersistent:   true,
+			Keyboard: [][]gotgbot.KeyboardButton{
+				{{
+					Text: "#tag",
+					WebApp: &gotgbot.WebAppInfo{Url: fmt.Sprintf(
+						"%s?message-id=%v&media-id=%v",
+						h.config.WebAppUrl,
+						m.MessageId+1,
+						strings.Join(str, ","),
+					)},
+				}},
 			},
 		},
 	})
+	deleteMessage(b, chatID, m.MessageId)
 	if err != nil {
 		return h.logger.Error(err.Error())
 	}
