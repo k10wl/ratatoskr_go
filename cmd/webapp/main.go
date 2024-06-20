@@ -28,7 +28,7 @@ func run(
 
 	httpServer := &http.Server{
 		Handler: svr,
-		Addr:    fmt.Sprintf("%s:%s", c.IP, c.PORT),
+		Addr:    fmt.Sprintf("[%s]:%s", c.IP, c.PORT),
 	}
 
 	l.Info(fmt.Sprintf("Starting server on %v", httpServer.Addr))
