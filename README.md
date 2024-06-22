@@ -16,13 +16,13 @@ git clone https://github.com/k10wl/ratatoskr_go.git
 3. Start the webApp:
 ```bash
 ngrok http $(PORT)
-make dev_webapp
+make dev-webapp
 ```
 
 4. Start the bot:
 Update `.env_bot` with ngrok address (telegram requires webApps to be https). Afterwards run bot
 ```bash
-make dev_bot
+make dev-bot
 ```
 
 Now the Ratatoskr bot should be up and running, ready to redirect messages to the specified channel.
