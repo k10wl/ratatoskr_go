@@ -1,26 +1,59 @@
+const TRANSITION_PROPERTY = '--transition-duration'
+
 const params = new URLSearchParams(window.location.search)
 const messageId = params.get('message-id')
 const mediaIds = params.get('media-id')
 
 if (!messageId) {
-  throw new Error('Message is required')
+  throw new Error('messageId is required')
+}
+if (!mediaIds) {
+  throw new Error('messageId is required')
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   const persistence = new Persistence(messageId)
+  const openedGroups = new StringSet(persistence.session.openedGroups)
+  const selectedTags = new StringSet(persistence.session.selectedTags)
 
-  persistence.lastSession.forEach((el) => Tags.toggleTag(el))
+  const initialTransitionDuration =
+    document.documentElement.style.getPropertyValue(TRANSITION_PROPERTY)
+  document.documentElement.style.setProperty(TRANSITION_PROPERTY, '0ms')
+
+  persistence.session.selectedTags.forEach((el) => selectedTags.toggle(el))
+
+  const throttledScrollUpdate = throttle(() => {
+    persistence.update('scrollY', window.scrollY)
+  }, 25)
+  window.addEventListener('scroll', () => throttledScrollUpdate())
+
+  document.querySelectorAll('input[data-type="group"]').forEach((g) => {
+    const group = assertInstance(g, HTMLInputElement)
+    if (persistence.session.openedGroups.includes(group.name)) {
+      group.checked = true
+    }
+    group.addEventListener('change', () => {
+      openedGroups.toggle(group.name)
+      persistence.update('openedGroups', openedGroups.get())
+    })
+  })
 
   document.querySelectorAll('input[data-type="tag"]').forEach((t) => {
     const tag = assertInstance(t, HTMLInputElement)
-    if (persistence.lastSession.includes(tag.name)) {
+    if (persistence.session.selectedTags.includes(tag.name)) {
       tag.checked = true
     }
     tag.addEventListener('change', () => {
-      Tags.toggleTag(tag.name)
-      persistence.storeTags(Tags.selected)
+      selectedTags.toggle(tag.name)
+      persistence.update('selectedTags', selectedTags.get())
     })
   })
+
+  window.scrollTo(0, persistence.session.scrollY)
+  document.documentElement.style.setProperty(
+    TRANSITION_PROPERTY,
+    initialTransitionDuration,
+  )
 
   assertInstance(
     document.getElementById('callback'),
@@ -30,32 +63,36 @@ document.addEventListener('DOMContentLoaded', () => {
       JSON.stringify({
         messageId,
         mediaIds,
-        tags: Tags.selected,
+        tags: selectedTags.get(),
       }),
     )
   })
 })
 
-class Tags {
-  /** @type string[] */
-  static selected = []
+class StringSet {
+  /** @type Set<string> */
+  #selected
 
-  static getSelected() {
-    return Tags.selected
+  /** @param {string[]} initial */
+  constructor(initial = []) {
+    this.#selected = new Set(initial)
   }
 
   /**
    * @param {string} tag
    * @returns {boolean} true if now present
    */
-  static toggleTag(tag) {
-    const i = this.selected.indexOf(tag)
-    if (i === -1) {
-      this.selected.push(tag)
+  toggle(tag) {
+    if (this.#selected.has(tag)) {
+      this.#selected.delete(tag)
       return true
     }
-    this.selected.splice(i, 1)
+    this.#selected.add(tag)
     return false
+  }
+
+  get() {
+    return [...this.#selected]
   }
 }
 
@@ -63,45 +100,69 @@ class Persistence {
   /**
    * @typedef persisted
    * @property {string} messageId
-   * @property {string[]} tags
+   * @property {string[]} openedGroups
+   * @property {string[]} selectedTags
+   * @property {number} scrollY
    */
 
   #key = 'ratatosrk-persistant-tags'
-  #messageId
-  /** @type string[] */
-  lastSession
+  /** @type persisted */
+  session
 
   /** @param {string} messageId */
   constructor(messageId) {
-    this.#messageId = messageId
-    this.lastSession = this.#getLastSession()
+    this.session = this.#getLastSession(messageId)
   }
 
-  /** @returns {string[]} */
-  #getLastSession() {
+  /**
+   * @param {string} messageId
+   * @returns {persisted}
+   */
+  #newSession(messageId) {
+    return {
+      messageId: messageId,
+      openedGroups: [],
+      selectedTags: [],
+      scrollY: 0,
+    }
+  }
+
+  /**
+   * @param {string} messageId
+   * @returns {persisted}
+   */
+  #getLastSession(messageId) {
     const stored = localStorage.getItem(this.#key)
     if (!stored) {
-      return []
+      return this.#newSession(messageId)
     }
     /** @type persisted */
     const parsed = JSON.parse(stored)
     if (
       typeof parsed !== 'object' ||
-      parsed.messageId !== this.#messageId ||
-      !Array.isArray(parsed.tags) ||
-      parsed.tags.some((el) => typeof el !== 'string')
+      parsed.messageId !== messageId ||
+      !Array.isArray(parsed.selectedTags) ||
+      parsed.selectedTags.some((el) => typeof el !== 'string')
     ) {
-      return []
+      return this.#newSession(messageId)
     }
-    return parsed.tags
+    return parsed
   }
 
-  /** @param {string[]} tags */
-  storeTags(tags) {
-    localStorage.setItem(
-      this.#key,
-      JSON.stringify({ messageId: this.#messageId, tags }),
-    )
+  /**
+   * @template {keyof persisted} T
+   * @param {T} key
+   * @param {persisted[T]} value
+   */
+  update(key, value) {
+    this.session[key] = value
+    this.#write(this.session)
+  }
+
+  /** @param {persisted} data */
+  #write(data) {
+    console.log(data)
+    localStorage.setItem(this.#key, JSON.stringify(data))
   }
 }
 
@@ -120,4 +181,21 @@ function assertInstance(obj, type) {
     return t
   }
   throw new Error(`Object ${obj} does not have the right type '${type}'!`)
+}
+
+/**
+ * @template T
+ * @param {(...args: T[]) => any} func
+ * @param {number} delay
+ */
+function throttle(func, delay) {
+  let lastCalled = 0
+  /** @param {T[]} args */
+  return function (...args) {
+    const now = performance.now()
+    if (now - lastCalled >= delay) {
+      func(...args)
+      lastCalled = now
+    }
+  }
 }

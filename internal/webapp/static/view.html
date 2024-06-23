@@ -31,7 +31,7 @@
         <span class="group-content-expanded">🥜</span>
     </label>
     <div class="group-content">
-        <input id="check-{{.Name}}" type="checkbox" hidden>
+        <input data-type="group" name="{{.Name}}" id="check-{{.Name}}" type="checkbox" hidden>
         <div class="accordion">
             <div>
                 <ul id="{{.Name}}">{{range .Tags}}{{template "tag" .}}{{end}}</ul>
