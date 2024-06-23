@@ -8,12 +8,17 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="/static/scripts.js"></script>
     <link rel="stylesheet" href="/static/styles.css">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, user-scalable=0, minimum-scale=1.0, maximum-scale=1.0">
+
 </head>
 
 <body>
     <div>
         {{range .Groups}}{{template "group" .}}{{end}}
-        <button type="button" id="callback">send message</button>
+        <div class="callback-container section">
+            <button type="button" id="callback">send message</button>
+        </div>
     </div>
 </body>
 
@@ -22,15 +27,25 @@
 
 
 {{define "group"}}
-<div>
-    <h3>{{.Name}}</h3>
-    <ul id="{{.Name}}">{{range .Tags}}{{template "tag" .}}{{end}}</ul>
+<div class="group">
+    <label class="group-header" for="check-{{.Name}}">
+        <h3>{{.Name}}</h3>
+        <span class="group-content-expanded">🥜</span>
+    </label>
+    <div class="group-content">
+        <input id="check-{{.Name}}" type="checkbox" hidden>
+        <div class="accordion">
+            <div>
+                <ul id="{{.Name}}">{{range .Tags}}{{template "tag" .}}{{end}}</ul>
+            </div>
+        </div>
+    </div>
 </div>
 {{end}}
 
 
 {{define "tag"}}
 <li>
-    <button class="text secondary-bg">{{.Name}}</button>
+    <label class="tag">{{.Name}}<input data-type="tag" name="{{.Name}}" type="checkbox" hidden></label>
 </li>
 {{end}}

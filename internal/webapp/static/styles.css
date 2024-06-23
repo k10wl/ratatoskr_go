@@ -6,6 +6,11 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+:root {
+  --transition-duration: 150ms;
+  --transition-timing-function: ease-in-out;
+}
+
 html {
   font-family:
     system-ui,
@@ -32,10 +37,11 @@ button {
   font-size: 1.25rem;
   border-radius: 0.75rem;
   padding: 0.25rem 0.5rem;
-  transition: all 100ms;
+  transition: all var(--transition-duration) var(--transition-timing-function);
 }
 
 ul {
+  margin: 0;
   list-style: none;
   display: flex;
   flex-wrap: wrap;
@@ -46,6 +52,10 @@ ul {
 
 li {
   margin: 0.25rem 0;
+}
+
+label {
+  cursor: pointer;
 }
 
 .secondary-bg {
@@ -76,8 +86,97 @@ li {
   color: var(--tg-theme-destructive-text-color);
 }
 
-#callback {
+.callback-container {
   position: sticky;
-  bottom: 1rem;
-  left: calc(100% - 1rem);
+  height: 3rem;
+  border: 0;
+}
+
+#callback {
+  position: fixed;
+  top: calc(var(--tg-viewport-stable-height) - 3rem);
+  right: 1rem;
+}
+
+.group {
+  --_group-radius: 0.5rem;
+  --_group-margin: 0.5rem;
+  --_group-padding: 0.25rem 0.5rem;
+  border-radius: var(--_group-radius);
+  margin: var(--_group-margin);
+}
+
+.group-header {
+  position: sticky;
+  top: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: var(--_group-radius);
+  overflow: hidden;
+  background-color: var(--tg-theme-secondary-bg-color);
+  padding: var(--_group-padding);
+  transition: border-radius var(--transition-duration)
+    var(--transition-timing-function);
+}
+h3 {
+  margin: 0;
+}
+
+.group-content-expanded {
+  rotate: 45deg;
+  transform-origin: center;
+  transition: rotate var(--transition-duration)
+    var(--transition-timing-function);
+}
+.group-header:has(+ div > :checked) .group-content-expanded {
+  rotate: -30deg;
+}
+
+.group-header:has(+ div > :checked) {
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.group-content {
+  overflow: hidden;
+}
+
+.group-content:has(> :checked) .accordion {
+  grid-template-rows: 1fr;
+}
+
+.accordion {
+  display: grid;
+  background-color: var(--tg-theme-section-bg-color);
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--transition-duration)
+    var(--transition-timing-function);
+}
+
+.accordion > div {
+  overflow: hidden;
+}
+
+.accordion ul {
+  padding: var(--_group-padding);
+  border: 2px solid var(--tg-theme-secondary-bg-color);
+  border-bottom-right-radius: var(--_group-radius);
+  border-bottom-left-radius: var(--_group-radius);
+}
+
+.tag {
+  cursor: pointer;
+  border: none;
+  outline: none;
+  background-color: var(--tg-theme-secondary-bg-color);
+  font-size: 1.25rem;
+  border-radius: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  transition: all var(--transition-duration) var(--transition-timing-function);
+}
+
+.tag:has(> :checked) {
+  background-color: var(--tg-theme-button-color);
+  color: var(--tg-theme-button-text-color);
 }

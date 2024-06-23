@@ -3,10 +3,16 @@ const messageId = params.get('message-id')
 const mediaIds = params.get('media-id')
 
 document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('input[data-type="tag"]').forEach((t) => {
+    const tag = assertInstance(t, HTMLInputElement)
+    tag.addEventListener('change', () => Tags.toggleTag(tag.name))
+  })
   assertInstance(
     document.getElementById('callback'),
     HTMLButtonElement,
   ).addEventListener('click', () => {
+    console.log(Tags.selected)
+    return
     Telegram.WebApp.sendData(
       JSON.stringify({
         messageId,
@@ -37,48 +43,6 @@ class Tags {
     }
     this.selected.splice(i, 1)
     return false
-  }
-}
-
-class Templates {
-  /** @type HTMLTemplateElement | null */
-  static #tagTemplate = null
-
-  /**
-   * @param {string} tag
-   * @returns {DocumentFragment}
-   */
-  static createTag(tag) {
-    const clone = assertInstance(
-      Templates.#getTagTemplateContent(),
-      DocumentFragment,
-    )
-    assertInstance(clone.querySelector('.text'), HTMLElement).textContent = tag
-    const button = assertInstance(
-      clone.querySelector('button'),
-      HTMLButtonElement,
-    )
-    button.addEventListener('click', () => {
-      if (Tags.toggleTag(tag)) {
-        button.classList.remove('secondary-bg')
-      } else {
-        button.classList.add('secondary-bg')
-      }
-    })
-    return clone
-  }
-
-  /**
-   * @returns {Node}
-   */
-  static #getTagTemplateContent() {
-    if (Templates.#tagTemplate === null) {
-      Templates.#tagTemplate = assertInstance(
-        document.querySelector('template#tag'),
-        HTMLTemplateElement,
-      )
-    }
-    return Templates.#tagTemplate.content.cloneNode(true)
   }
 }
 
