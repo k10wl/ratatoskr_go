@@ -20,8 +20,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.documentElement.style.getPropertyValue(TRANSITION_PROPERTY)
   document.documentElement.style.setProperty(TRANSITION_PROPERTY, '0ms')
 
-  persistence.session.selectedTags.forEach((el) => selectedTags.toggle(el))
-
   const throttledScrollUpdate = throttle(() => {
     persistence.update('scrollY', window.scrollY)
   }, 25)
