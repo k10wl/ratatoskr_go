@@ -42,9 +42,19 @@ func addHandlers(
 	middleware := newMidlleware(logger, config)
 
 	dispatcher.AddHandler(
+		handlers.NewCommand("ping",
+			middleware.adminOnly(
+				handler.handlePing()),
+		),
+	)
+
+	dispatcher.AddHandler(
 		handlers.NewMessage(func(msg *gotgbot.Message) bool {
 			return msg.WebAppData != nil
-		}, handler.handleWebAppData()),
+		},
+			middleware.adminOnly(
+				handler.handleWebAppData()),
+		),
 	)
 
 	dispatcher.AddHandler(
@@ -343,6 +353,13 @@ func (h handler) handleWebAppData() handlers.Response {
 		if err != nil {
 			return h.logger.Error(err.Error())
 		}
+		return nil
+	}
+}
+
+func (h handler) handlePing() handlers.Response {
+	return func(b *gotgbot.Bot, ctx *ext.Context) error {
+		sendMessage(b, ctx.EffectiveChat.Id, "pong", nil)
 		return nil
 	}
 }

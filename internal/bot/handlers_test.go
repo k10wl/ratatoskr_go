@@ -814,3 +814,28 @@ func TestHandleWebAppData(t *testing.T) {
 		}
 	}
 }
+
+func TestPingHandler(t *testing.T) {
+	fakeHandler := newHandler(fakeLogger(), &config.BotConfig{Token: "TOKEN", WebAppUrl: webAppUrl})
+	originalSendMessage := sendMessage
+	defer func() {
+		sendMessage = originalSendMessage
+	}()
+	messageText := ""
+	sendInChat := -1
+	sendMessage = func(b bot, chatId int64, message string, opts *gotgbot.SendMessageOpts) (*gotgbot.Message, error) {
+		messageText = message
+		sendInChat = int(chatId)
+		return nil, nil
+	}
+	fakeHandler.handlePing()(&gotgbot.Bot{}, &ext.Context{
+
+		EffectiveChat: &gotgbot.Chat{Id: 1},
+	})
+	if messageText != "pong" {
+		t.Errorf("did not respond with `ping`. Actual: %s", messageText)
+	}
+	if sendInChat != 1 {
+		t.Errorf("did not respond in same chat. Actual: %d", sendInChat)
+	}
+}
