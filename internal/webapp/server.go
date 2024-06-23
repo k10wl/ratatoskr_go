@@ -1,24 +1,27 @@
 package webapp
 
 import (
+	"context"
 	"embed"
 	"fmt"
 	"html/template"
 	"net/http"
+	"ratatoskr/internal/db"
 	"ratatoskr/internal/logger"
+	"ratatoskr/internal/models"
 	"time"
 )
 
 //go:embed static
 var content embed.FS
 
-func NewServer(logger *logger.Logger) (http.Handler, error) {
+func NewServer(db db.DB, logger *logger.Logger) (http.Handler, error) {
 	mux := http.NewServeMux()
 	t, err := loadTemplate()
 	if err != nil {
 		return nil, logger.Error(err.Error())
 	}
-	addRoutes(mux, logger, t)
+	addRoutes(mux, db, logger, t)
 
 	var handler http.Handler = mux
 	handler = LoggerMiddleware(logger, handler)
@@ -27,18 +30,33 @@ func NewServer(logger *logger.Logger) (http.Handler, error) {
 
 func addRoutes(
 	mux *http.ServeMux,
+	db db.DB,
 	logger *logger.Logger,
 	t *template.Template,
 ) {
 	mux.Handle("/static/", http.FileServer(http.FS(content)))
-	mux.HandleFunc("/", handleHome(logger, t))
+	mux.HandleFunc("/", handleHome(db, logger, t))
 }
 
-func handleHome(logger *logger.Logger, t *template.Template) http.HandlerFunc {
+func handleHome(db db.DB, logger *logger.Logger, t *template.Template) http.HandlerFunc {
+	type data struct {
+		Groups []models.Group
+	}
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := t.ExecuteTemplate(w, "/", nil)
+		ctx := context.Background()
+		ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+		defer cancel()
+		group, err := db.GetAllGroupsWithTags(ctx)
 		if err != nil {
 			logger.Error(err.Error())
+			fmt.Fprintf(w, "")
+			return
+		}
+		err = t.ExecuteTemplate(w, "/", data{Groups: *group})
+		if err != nil {
+			logger.Error(err.Error())
+			fmt.Fprintf(w, "")
+			return
 		}
 	}
 }

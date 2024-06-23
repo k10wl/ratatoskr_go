@@ -3,6 +3,7 @@
 *::after {
   box-sizing: border-box;
   user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html {
@@ -22,16 +23,29 @@ body {
   color: var(--tg-theme-text-color);
 }
 
-a {
-  color: var(--tg-theme-link-color);
-}
-
 button {
   cursor: pointer;
   border: none;
   outline: none;
   background-color: var(--tg-theme-button-color);
   color: var(--tg-theme-button-text-color);
+  font-size: 1.25rem;
+  border-radius: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  transition: all 100ms;
+}
+
+ul {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  padding: 0;
+  justify-content: center;
+}
+
+li {
+  margin: 0.25rem 0;
 }
 
 .secondary-bg {
@@ -60,4 +74,10 @@ button {
 
 .destructive {
   color: var(--tg-theme-destructive-text-color);
+}
+
+#callback {
+  position: sticky;
+  bottom: 1rem;
+  left: calc(100% - 1rem);
 }

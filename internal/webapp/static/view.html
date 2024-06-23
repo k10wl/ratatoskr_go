@@ -12,12 +12,25 @@
 
 <body>
     <div>
-        <pre id="url"></pre>
-        <h1><3</h1>
-        <p>what r u up to?</p>
-        <button>say hi</button>
+        {{range .Groups}}{{template "group" .}}{{end}}
+        <button type="button" id="callback">send message</button>
     </div>
 </body>
 
 </html>
+{{end}}
+
+
+{{define "group"}}
+<div>
+    <h3>{{.Name}}</h3>
+    <ul id="{{.Name}}">{{range .Tags}}{{template "tag" .}}{{end}}</ul>
+</div>
+{{end}}
+
+
+{{define "tag"}}
+<li>
+    <button class="text secondary-bg">{{.Name}}</button>
+</li>
 {{end}}

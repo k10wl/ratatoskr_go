@@ -24,6 +24,10 @@ func TestGetWebAppConfig(t *testing.T) {
 					return "127.0.0.1"
 				case "PORT":
 					return "8080"
+				case "MONGO_URI":
+					return "mongo://<name>:<pass>"
+				case "MONGO_DB_NAME":
+					return "database name"
 				default:
 					return ""
 				}
@@ -42,6 +46,54 @@ func TestGetWebAppConfig(t *testing.T) {
 					return ""
 				case "PORT":
 					return "8080"
+				case "MONGO_URI":
+					return "mongo://<name>:<pass>"
+				case "MONGO_DB_NAME":
+					return "database name"
+				default:
+					return ""
+				}
+			},
+			shouldError: true,
+			expected:    &WepAppConfig{AdminIDs: []int64{1234, 7890}},
+		},
+
+		{
+			name: "should error if MONGO_URI was not provided",
+			getenv: func(s string) string {
+				switch s {
+				case "ADMIN_IDS":
+					return "1234,7890"
+				case "IP":
+					return "127.0.0.1"
+				case "PORT":
+					return "8080"
+				case "MONGO_URI":
+					return ""
+				case "MONGO_DB_NAME":
+					return "database name"
+				default:
+					return ""
+				}
+			},
+			shouldError: true,
+			expected:    &WepAppConfig{AdminIDs: []int64{1234, 7890}},
+		},
+
+		{
+			name: "should error if MONGO_DB_NAME was not provided",
+			getenv: func(s string) string {
+				switch s {
+				case "ADMIN_IDS":
+					return "1234,7890"
+				case "IP":
+					return "127.0.0.1"
+				case "PORT":
+					return "8080"
+				case "MONGO_URI":
+					return "mongo://<name>:<pass>"
+				case "MONGO_DB_NAME":
+					return ""
 				default:
 					return ""
 				}
@@ -60,6 +112,10 @@ func TestGetWebAppConfig(t *testing.T) {
 					return "127.0.0.1"
 				case "PORT":
 					return ""
+				case "MONGO_URI":
+					return "mongo://<name>:<pass>"
+				case "MONGO_DB_NAME":
+					return "database name"
 				default:
 					return ""
 				}
@@ -78,15 +134,21 @@ func TestGetWebAppConfig(t *testing.T) {
 					return "127.0.0.1"
 				case "PORT":
 					return "8080"
+				case "MONGO_URI":
+					return "mongo://<name>:<pass>"
+				case "MONGO_DB_NAME":
+					return "database name"
 				default:
 					return ""
 				}
 			},
 			shouldError: false,
 			expected: &WepAppConfig{
-				AdminIDs: []int64{1234, 7890},
-				IP:       "127.0.0.1",
-				PORT:     "8080",
+				AdminIDs:    []int64{1234, 7890},
+				IP:          "127.0.0.1",
+				Port:        "8080",
+				MongoURI:    "mongo://<name>:<pass>",
+				MongoDBName: "database name",
 			},
 		},
 	}

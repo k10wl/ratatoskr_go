@@ -1,12 +1,86 @@
+const params = new URLSearchParams(window.location.search)
+const messageId = params.get('message-id')
+const mediaIds = params.get('media-id')
+
 document.addEventListener('DOMContentLoaded', () => {
-  const params = new URLSearchParams(window.location.search)
-  params.forEach((v, k) => {
-    assertInstance(document.getElementById('url'), HTMLElement).textContent +=
-      k + ': ' + v + '\n'
+  assertInstance(
+    document.getElementById('callback'),
+    HTMLButtonElement,
+  ).addEventListener('click', () => {
+    Telegram.WebApp.sendData(
+      JSON.stringify({
+        messageId,
+        mediaIds,
+        tags: Tags.selected,
+      }),
+    )
   })
-  assertInstance(document.getElementById('url'), HTMLElement).textContent +=
-    '\ndata: ' + Telegram.WebApp.initData
 })
+
+class Tags {
+  /** @type string[] */
+  static selected = []
+
+  static getSelected() {
+    return Tags.selected
+  }
+
+  /**
+   * @param {string} tag
+   * @returns {boolean} true if now present
+   */
+  static toggleTag(tag) {
+    const i = this.selected.indexOf(tag)
+    if (i === -1) {
+      this.selected.push(tag)
+      return true
+    }
+    this.selected.splice(i, 1)
+    return false
+  }
+}
+
+class Templates {
+  /** @type HTMLTemplateElement | null */
+  static #tagTemplate = null
+
+  /**
+   * @param {string} tag
+   * @returns {DocumentFragment}
+   */
+  static createTag(tag) {
+    const clone = assertInstance(
+      Templates.#getTagTemplateContent(),
+      DocumentFragment,
+    )
+    assertInstance(clone.querySelector('.text'), HTMLElement).textContent = tag
+    const button = assertInstance(
+      clone.querySelector('button'),
+      HTMLButtonElement,
+    )
+    button.addEventListener('click', () => {
+      if (Tags.toggleTag(tag)) {
+        button.classList.remove('secondary-bg')
+      } else {
+        button.classList.add('secondary-bg')
+      }
+    })
+    return clone
+  }
+
+  /**
+   * @returns {Node}
+   */
+  static #getTagTemplateContent() {
+    if (Templates.#tagTemplate === null) {
+      Templates.#tagTemplate = assertInstance(
+        document.querySelector('template#tag'),
+        HTMLTemplateElement,
+      )
+    }
+    return Templates.#tagTemplate.content.cloneNode(true)
+  }
+}
 
 /**
  * @template T
