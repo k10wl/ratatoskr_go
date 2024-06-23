@@ -2,17 +2,30 @@ const params = new URLSearchParams(window.location.search)
 const messageId = params.get('message-id')
 const mediaIds = params.get('media-id')
 
+if (!messageId) {
+  throw new Error('Message is required')
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  const persistence = new Persistence(messageId)
+
+  persistence.lastSession.forEach((el) => Tags.toggleTag(el))
+
   document.querySelectorAll('input[data-type="tag"]').forEach((t) => {
     const tag = assertInstance(t, HTMLInputElement)
-    tag.addEventListener('change', () => Tags.toggleTag(tag.name))
+    if (persistence.lastSession.includes(tag.name)) {
+      tag.checked = true
+    }
+    tag.addEventListener('change', () => {
+      Tags.toggleTag(tag.name)
+      persistence.storeTags(Tags.selected)
+    })
   })
+
   assertInstance(
     document.getElementById('callback'),
     HTMLButtonElement,
   ).addEventListener('click', () => {
-    console.log(Tags.selected)
-    return
     Telegram.WebApp.sendData(
       JSON.stringify({
         messageId,
@@ -43,6 +56,52 @@ class Tags {
     }
     this.selected.splice(i, 1)
     return false
+  }
+}
+
+class Persistence {
+  /**
+   * @typedef persisted
+   * @property {string} messageId
+   * @property {string[]} tags
+   */
+
+  #key = 'ratatosrk-persistant-tags'
+  #messageId
+  /** @type string[] */
+  lastSession
+
+  /** @param {string} messageId */
+  constructor(messageId) {
+    this.#messageId = messageId
+    this.lastSession = this.#getLastSession()
+  }
+
+  /** @returns {string[]} */
+  #getLastSession() {
+    const stored = localStorage.getItem(this.#key)
+    if (!stored) {
+      return []
+    }
+    /** @type persisted */
+    const parsed = JSON.parse(stored)
+    if (
+      typeof parsed !== 'object' ||
+      parsed.messageId !== this.#messageId ||
+      !Array.isArray(parsed.tags) ||
+      parsed.tags.some((el) => typeof el !== 'string')
+    ) {
+      return []
+    }
+    return parsed.tags
+  }
+
+  /** @param {string[]} tags */
+  storeTags(tags) {
+    localStorage.setItem(
+      this.#key,
+      JSON.stringify({ messageId: this.#messageId, tags }),
+    )
   }
 }
 

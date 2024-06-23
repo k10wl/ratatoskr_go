@@ -86,16 +86,25 @@ label {
   color: var(--tg-theme-destructive-text-color);
 }
 
-.callback-container {
-  position: sticky;
-  height: 3rem;
-  border: 0;
-}
-
 #callback {
+  --_size: 40px;
+  border-radius: 999vh;
+  width: var(--_size);
+  height: var(--_size);
+  display: flex;
+  justify-content: center;
+  align-items: center;
   position: fixed;
   top: calc(var(--tg-viewport-stable-height) - 3rem);
   right: 1rem;
+}
+
+#callback svg {
+  padding-left: 10%;
+}
+
+#callback svg path {
+  fill: var(--tg-theme-text-color);
 }
 
 .group {
