@@ -11,6 +11,7 @@ type WepAppConfig struct {
 	Port        string
 	MongoURI    string
 	MongoDBName string
+	Token       string
 }
 
 func GetWebAppConfig(getenv func(string) string) (*WepAppConfig, error) {
@@ -38,11 +39,16 @@ func GetWebAppConfig(getenv func(string) string) (*WepAppConfig, error) {
 	if mongoDBName == "" {
 		return nil, fmt.Errorf("required MONGO_DB_NAME was not provided")
 	}
+	token := getenv("TOKEN")
+	if token == "" {
+		return nil, fmt.Errorf("bot token not provided")
+	}
 	return &WepAppConfig{
 		AdminIDs:    adminIDs,
 		IP:          ip,
 		Port:        port,
 		MongoURI:    mongoURI,
 		MongoDBName: mongoDBName,
+		Token:       token,
 	}, nil
 }

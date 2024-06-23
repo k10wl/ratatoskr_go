@@ -33,7 +33,7 @@ func run(
 		return l.Error(err.Error())
 	}
 
-	svr, err := webapp.NewServer(db, l)
+	svr, err := webapp.NewServer(c, db, l)
 	if err != nil {
 		return l.Error(err.Error())
 	}

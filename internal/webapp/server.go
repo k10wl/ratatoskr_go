@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"ratatoskr/internal/config"
 	"ratatoskr/internal/db"
 	"ratatoskr/internal/logger"
 	"ratatoskr/internal/models"
@@ -15,13 +16,13 @@ import (
 //go:embed static
 var content embed.FS
 
-func NewServer(db db.DB, logger *logger.Logger) (http.Handler, error) {
+func NewServer(c *config.WepAppConfig, db db.DB, logger *logger.Logger) (http.Handler, error) {
 	mux := http.NewServeMux()
 	t, err := loadTemplate()
 	if err != nil {
 		return nil, logger.Error(err.Error())
 	}
-	addRoutes(mux, db, logger, t)
+	addRoutes(mux, c, db, logger, t)
 
 	var handler http.Handler = mux
 	handler = LoggerMiddleware(logger, handler)
@@ -30,15 +31,17 @@ func NewServer(db db.DB, logger *logger.Logger) (http.Handler, error) {
 
 func addRoutes(
 	mux *http.ServeMux,
+	config *config.WepAppConfig,
 	db db.DB,
 	logger *logger.Logger,
-	t *template.Template,
+	template *template.Template,
 ) {
 	mux.Handle("/static/", http.FileServer(http.FS(content)))
-	mux.HandleFunc("/", handleHome(db, logger, t))
+	mux.HandleFunc("/", tokenOnly(config, logger, handleHome(db, logger, template)))
+	mux.Handle("/ping", ping())
 }
 
-func handleHome(db db.DB, logger *logger.Logger, t *template.Template) http.HandlerFunc {
+func handleHome(db db.DB, logger *logger.Logger, template *template.Template) http.HandlerFunc {
 	type data struct {
 		Groups []models.Group
 	}
@@ -52,12 +55,29 @@ func handleHome(db db.DB, logger *logger.Logger, t *template.Template) http.Hand
 			fmt.Fprintf(w, "")
 			return
 		}
-		err = t.ExecuteTemplate(w, "/", data{Groups: *group})
+		err = template.ExecuteTemplate(w, "webapp", data{Groups: *group})
 		if err != nil {
 			logger.Error(err.Error())
 			fmt.Fprintf(w, "")
 			return
 		}
+	}
+}
+
+func ping() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "pong")
+	}
+}
+
+func tokenOnly(c *config.WepAppConfig, l *logger.Logger, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != fmt.Sprintf("/%s", c.Token) {
+			l.Error("requested server, but not bot")
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+		next(w, r)
 	}
 }
 

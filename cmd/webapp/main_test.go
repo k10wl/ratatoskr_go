@@ -24,15 +24,42 @@ func TestRun(t *testing.T) {
 		os.Stdout,
 		os.Stderr,
 	)
-	err := waitForReady(ctx, time.Second*5, "http://127.0.0.1:8088/ping")
+	err := waitForReady(ctx, time.Second, "http://127.0.0.1:8088/ping")
 	if err != nil {
 		t.Errorf("error upon waiting for server: %v", err)
 	}
+
 	res, err := http.Get("http://127.0.0.1:8088/")
 	if err != nil {
 		t.Errorf("error upon waiting for server: %v", err)
 	}
 	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Errorf("error upon waiting for server: %v", err)
+		return
+	}
+	if res.StatusCode != http.StatusForbidden || len(data) > 0 {
+		t.Error("did not block request without token")
+	}
+
+	res, err = http.Get("http://127.0.0.1:8088/ping")
+	if err != nil {
+		t.Errorf("error upon waiting for server: %v", err)
+	}
+	data, err = io.ReadAll(res.Body)
+	if err != nil {
+		t.Errorf("error upon waiting for server: %v", err)
+		return
+	}
+	if string(data) != "pong" {
+		t.Error("failed to ping-pong")
+	}
+
+	res, err = http.Get("http://127.0.0.1:8088/TOKEN")
+	if err != nil {
+		t.Errorf("error upon waiting for server: %v", err)
+	}
+	data, err = io.ReadAll(res.Body)
 	if err != nil {
 		t.Errorf("error upon waiting for server: %v", err)
 		return
@@ -114,6 +141,8 @@ func getEnv(s string) string {
 		return "mongo://<name>:<pass>"
 	case "MONGO_DB_NAME":
 		return "database name"
+	case "TOKEN":
+		return "TOKEN"
 	default:
 		return ""
 	}

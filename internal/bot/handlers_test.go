@@ -22,7 +22,7 @@ func fakeLogger() *logger.Logger {
 }
 
 func TestReceiveGroupMedia(t *testing.T) {
-	fakeHandler := newHandler(fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
+	fakeHandler := newHandler(fakeLogger(), &config.BotConfig{Token: "TOKEN", WebAppUrl: webAppUrl})
 
 	calls := 0
 	res := fakeHandler.receiveGroup(
@@ -195,7 +195,11 @@ func TestSendPhoto(t *testing.T) {
 	if !nextCalled {
 		t.Errorf("Next was not called after handlePhoto")
 	}
-	expectedWebAppUrl := fmt.Sprintf("%s?message-id=3&media-id=1", webAppUrl)
+	expectedWebAppUrl := fmt.Sprintf(
+		"%s/%s?message-id=3&media-id=1",
+		webAppUrl,
+		fakeHandler.config.Token,
+	)
 	if sendWebAppUrl != expectedWebAppUrl {
 		t.Errorf(
 			"Did not send correct webApp message-id query params\nexpected: %v\nactual:   %v",
@@ -276,7 +280,11 @@ func TestSendVideo(t *testing.T) {
 	if !nextCalled {
 		t.Errorf("Next was not called after handleVideo")
 	}
-	expectedWebAppUrl := fmt.Sprintf("%s?message-id=3&media-id=1", webAppUrl)
+	expectedWebAppUrl := fmt.Sprintf(
+		"%s/%s?message-id=3&media-id=1",
+		webAppUrl,
+		fakeHandler.config.Token,
+	)
 	if sendWebAppUrl != expectedWebAppUrl {
 		t.Errorf(
 			"Did not send correct webApp message-id query params\nexpected: %v\nactual:   %v",
@@ -360,7 +368,7 @@ func TestSendAnimation(t *testing.T) {
 	if !nextCalled {
 		t.Errorf("Next was not called after handleAnimation")
 	}
-	expectedWebAppUrl := fmt.Sprintf("%s?message-id=3&media-id=1", webAppUrl)
+	expectedWebAppUrl := fmt.Sprintf("%s/?message-id=3&media-id=1", webAppUrl)
 	if sendWebAppUrl != expectedWebAppUrl {
 		t.Errorf(
 			"Did not send correct webApp message-id query params\nexpected: %v\nactual:   %v",
@@ -381,7 +389,7 @@ func TestRespondWithMediaGroup(t *testing.T) {
 	var send arg
 	var sendWebAppUrl string
 	sendMessageID := 0
-	fakeHandler := newHandler(fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
+	fakeHandler := newHandler(fakeLogger(), &config.BotConfig{Token: "TOKEN", WebAppUrl: webAppUrl})
 	fakeHandler.mediaGroupMap = newMediaGroupMap()
 	fakeHandler.mediaGroupMap.hashMap = map[string][]item{
 		"1": {
@@ -470,7 +478,11 @@ func TestRespondWithMediaGroup(t *testing.T) {
 	) {
 		t.Errorf("Did not send correct media group:\nexpected: %+v\nactual:   %+v", expected, send)
 	}
-	expectedWebAppUrl := fmt.Sprintf("%s?message-id=2&media-id=1,2,3", webAppUrl)
+	expectedWebAppUrl := fmt.Sprintf(
+		"%s/%s?message-id=2&media-id=1,2,3",
+		webAppUrl,
+		fakeHandler.config.Token,
+	)
 	if sendWebAppUrl != expectedWebAppUrl {
 		t.Errorf(
 			"Did not send correct webApp message-id query params\nexpected: %v\nactual:   %v",
@@ -492,7 +504,7 @@ func TestRemoveEffectiveMediaGroup(t *testing.T) {
 	}
 	removed := arg{}
 	calls := 0
-	fakeHandler := newHandler(fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
+	fakeHandler := newHandler(fakeLogger(), &config.BotConfig{Token: "TOKEN", WebAppUrl: webAppUrl})
 	original := deleteMessages
 	defer func() {
 		deleteMessages = original
@@ -571,11 +583,14 @@ func TestSendWebAppMarkup(t *testing.T) {
 					}
 					return &gotgbot.Message{MessageId: int64(sendMessageCalls)}, nil
 				}
-				fakeHandler := newHandler(fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
+				fakeHandler := newHandler(
+					fakeLogger(),
+					&config.BotConfig{Token: "TOKEN", WebAppUrl: webAppUrl},
+				)
 				fakeHandler.sendWebAppMarkup(&gotgbot.Bot{}, int64(sendMessageCalls), []int64{1234})
 				return url
 			},
-			expected: webAppUrl + "?message-id=2&media-id=1234",
+			expected: webAppUrl + "/TOKEN?message-id=2&media-id=1234",
 		},
 
 		{
@@ -590,11 +605,14 @@ func TestSendWebAppMarkup(t *testing.T) {
 					}
 					return &gotgbot.Message{MessageId: int64(sendMessageCalls)}, nil
 				}
-				fakeHandler := newHandler(fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
+				fakeHandler := newHandler(
+					fakeLogger(),
+					&config.BotConfig{Token: "TOKEN", WebAppUrl: webAppUrl},
+				)
 				fakeHandler.sendWebAppMarkup(&gotgbot.Bot{}, 1, []int64{1234})
 				return url
 			},
-			expected: webAppUrl + "?message-id=2&media-id=1234",
+			expected: webAppUrl + "/TOKEN?message-id=2&media-id=1234",
 		},
 
 		{
@@ -609,11 +627,14 @@ func TestSendWebAppMarkup(t *testing.T) {
 					}
 					return &gotgbot.Message{MessageId: int64(sendMessageCalls)}, nil
 				}
-				fakeHandler := newHandler(fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
+				fakeHandler := newHandler(
+					fakeLogger(),
+					&config.BotConfig{Token: "TOKEN", WebAppUrl: webAppUrl},
+				)
 				fakeHandler.sendWebAppMarkup(&gotgbot.Bot{}, 1, []int64{1234})
 				return url
 			},
-			expected: webAppUrl + "?message-id=2&media-id=1234",
+			expected: webAppUrl + "/TOKEN?message-id=2&media-id=1234",
 		},
 
 		{
@@ -628,11 +649,14 @@ func TestSendWebAppMarkup(t *testing.T) {
 					return &gotgbot.Message{MessageId: 1}, nil
 				}
 
-				fakeHandler := newHandler(fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
+				fakeHandler := newHandler(
+					fakeLogger(),
+					&config.BotConfig{Token: "TOKEN", WebAppUrl: webAppUrl},
+				)
 				fakeHandler.sendWebAppMarkup(&gotgbot.Bot{}, 1, []int64{1234, 1235, 1236})
 				return url
 			},
-			expected: webAppUrl + "?message-id=2&media-id=1234,1235,1236",
+			expected: webAppUrl + "/TOKEN?message-id=2&media-id=1234,1235,1236",
 		},
 	}
 

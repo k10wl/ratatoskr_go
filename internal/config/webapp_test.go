@@ -28,6 +28,8 @@ func TestGetWebAppConfig(t *testing.T) {
 					return "mongo://<name>:<pass>"
 				case "MONGO_DB_NAME":
 					return "database name"
+				case "TOKEN":
+					return "TOKEN"
 				default:
 					return ""
 				}
@@ -50,6 +52,8 @@ func TestGetWebAppConfig(t *testing.T) {
 					return "mongo://<name>:<pass>"
 				case "MONGO_DB_NAME":
 					return "database name"
+				case "TOKEN":
+					return "TOKEN"
 				default:
 					return ""
 				}
@@ -72,6 +76,8 @@ func TestGetWebAppConfig(t *testing.T) {
 					return ""
 				case "MONGO_DB_NAME":
 					return "database name"
+				case "TOKEN":
+					return "TOKEN"
 				default:
 					return ""
 				}
@@ -94,6 +100,8 @@ func TestGetWebAppConfig(t *testing.T) {
 					return "mongo://<name>:<pass>"
 				case "MONGO_DB_NAME":
 					return ""
+				case "TOKEN":
+					return "TOKEN"
 				default:
 					return ""
 				}
@@ -116,6 +124,32 @@ func TestGetWebAppConfig(t *testing.T) {
 					return "mongo://<name>:<pass>"
 				case "MONGO_DB_NAME":
 					return "database name"
+				case "TOKEN":
+					return "TOKEN"
+				default:
+					return ""
+				}
+			},
+			shouldError: true,
+			expected:    &WepAppConfig{AdminIDs: []int64{1234, 7890}},
+		},
+
+		{
+			name: "should error if TOKEN was not provided",
+			getenv: func(s string) string {
+				switch s {
+				case "ADMIN_IDS":
+					return "1234,7890"
+				case "IP":
+					return "127.0.0.1"
+				case "PORT":
+					return "8080"
+				case "MONGO_URI":
+					return "mongo://<name>:<pass>"
+				case "MONGO_DB_NAME":
+					return "database name"
+				case "TOKEN":
+					return ""
 				default:
 					return ""
 				}
@@ -138,6 +172,8 @@ func TestGetWebAppConfig(t *testing.T) {
 					return "mongo://<name>:<pass>"
 				case "MONGO_DB_NAME":
 					return "database name"
+				case "TOKEN":
+					return "TOKEN"
 				default:
 					return ""
 				}
@@ -149,6 +185,7 @@ func TestGetWebAppConfig(t *testing.T) {
 				Port:        "8080",
 				MongoURI:    "mongo://<name>:<pass>",
 				MongoDBName: "database name",
+				Token:       "TOKEN",
 			},
 		},
 	}

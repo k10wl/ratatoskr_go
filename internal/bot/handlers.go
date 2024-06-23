@@ -285,8 +285,9 @@ func (h handler) sendWebAppMarkup(b bot, chatID int64, messageID []int64) error 
 				{{
 					Text: "#tag",
 					WebApp: &gotgbot.WebAppInfo{Url: fmt.Sprintf(
-						"%s?message-id=%v&media-id=%v",
+						"%s/%s?message-id=%v&media-id=%v",
 						h.config.WebAppUrl,
+						h.config.Token,
 						m.MessageId+1,
 						strings.Join(str, ","),
 					)},
