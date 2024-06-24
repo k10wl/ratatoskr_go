@@ -22,8 +22,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const throttledScrollUpdate = throttle(() => {
     persistence.update('scrollY', window.scrollY)
-  }, 25)
+  }, 100)
   window.addEventListener('scroll', () => throttledScrollUpdate())
+  window.addEventListener('beforeunload', () =>
+    persistence.update('scrollY', window.scrollY),
+  )
 
   document.querySelectorAll('input[data-type="group"]').forEach((g) => {
     const group = assertInstance(g, HTMLInputElement)
@@ -38,11 +41,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelectorAll('input[data-type="tag"]').forEach((t) => {
     const tag = assertInstance(t, HTMLInputElement)
-    if (persistence.session.selectedTags.includes(tag.name)) {
+    const ul = assertInstance(tag.closest('ul'), HTMLUListElement)
+    const withGroup = `${ul.id}::${tag.name}`
+    if (persistence.session.selectedTags.includes(withGroup)) {
       tag.checked = true
     }
     tag.addEventListener('change', () => {
-      selectedTags.toggle(tag.name)
+      selectedTags.toggle(withGroup)
       persistence.update('selectedTags', selectedTags.get())
     })
   })
@@ -57,11 +62,20 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('callback'),
     HTMLButtonElement,
   ).addEventListener('click', () => {
+    const data = selectedTags.get().reduce((acc, cur) => {
+      const [group, tag] = cur.split('::')
+      if (acc[group]) {
+        acc[group].push(tag)
+      } else {
+        acc[group] = [tag]
+      }
+      return acc
+    }, /** @type {Record<string, string[]>} */ ({}))
     Telegram.WebApp.sendData(
       JSON.stringify({
         messageId,
         mediaIds,
-        tags: selectedTags.get(),
+        data,
       }),
     )
   })
@@ -159,7 +173,6 @@ class Persistence {
 
   /** @param {persisted} data */
   #write(data) {
-    console.log(data)
     localStorage.setItem(this.#key, JSON.stringify(data))
   }
 }

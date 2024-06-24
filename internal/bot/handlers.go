@@ -65,7 +65,7 @@ func addHandlers(
 			return msg.WebAppData != nil
 		},
 			middleware.adminOnly(
-				handler.handleWebAppData()),
+				handler.handleWebAppData(time.Now)),
 		),
 	)
 
@@ -324,11 +324,11 @@ func (h handler) sendWebAppMarkup(b bot, chatID int64, messageID []int64) error 
 	return err
 }
 
-func (h handler) handleWebAppData() handlers.Response {
+func (h handler) handleWebAppData(now func() time.Time) handlers.Response {
 	type data struct {
-		MediaIDs  string   `json:"mediaIds,required"`
-		MessageID string   `json:"messageId,required"`
-		Tags      []string `json:"tags,required"`
+		MediaIDs  string              `json:"mediaIds,required"`
+		MessageID string              `json:"messageId,required"`
+		Data      map[string][]string `json:"data,required"`
 	}
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
 		var d data
@@ -340,10 +340,25 @@ func (h handler) handleWebAppData() handlers.Response {
 		if err != nil {
 			return h.logger.Error(err.Error())
 		}
+		tags := []string{}
+		analytics := []models.Analytics{}
+		for group, tagsArray := range d.Data {
+			for _, tag := range tagsArray {
+				tags = append(tags, tag)
+				analytics = append(
+					analytics,
+					models.Analytics{
+						Group: group,
+						Tag:   tag,
+						Date:  now(),
+					},
+				)
+			}
+		}
 		_, _, err = editMessageCaption(b, &gotgbot.EditMessageCaptionOpts{
 			ChatId:    ctx.EffectiveChat.Id,
 			MessageId: mediaIDs[0],
-			Caption:   strings.Join(d.Tags, "\n"),
+			Caption:   strings.Join(tags, "\n"),
 		})
 		if err != nil &&
 			!strings.Contains(err.Error(), "are exactly the same as a current content") {
@@ -365,6 +380,9 @@ func (h handler) handleWebAppData() handlers.Response {
 		if err != nil {
 			return h.logger.Error(err.Error())
 		}
+		c, cancel := context.WithTimeout(context.TODO(), time.Second*5)
+		defer cancel()
+		h.db.InsertAnalytics(c, &analytics)
 		return nil
 	}
 }

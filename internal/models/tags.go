@@ -1,6 +1,8 @@
 package models
 
 import (
+	"time"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -20,5 +22,5 @@ type Analytics struct {
 	ID    primitive.ObjectID `bson:"_id,omitempty"`
 	Tag   string             `bson:"tag"`
 	Group string             `bson:"group"`
-	Date  primitive.DateTime `bson:"dateUsed"`
+	Date  time.Time          `bson:"dateUsed"`
 }

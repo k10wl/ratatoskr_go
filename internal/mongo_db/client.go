@@ -57,10 +57,19 @@ func (m MongoDB) GetAllGroupsWithTags(ctx context.Context) (*[]models.Group, err
 
 func (m MongoDB) UpdateTags(ctx context.Context, g *[]models.Group) error {
 	m.tagsCollection.DeleteMany(ctx, bson.D{{}})
-	docs := []interface{}{}
-	for _, val := range *g {
-		docs = append(docs, val)
+	docs := make([]interface{}, len(*g))
+	for i, v := range *g {
+		docs[i] = v
 	}
 	_, err := m.tagsCollection.InsertMany(ctx, docs)
 	return err
+}
+
+func (m MongoDB) InsertAnalytics(ctx context.Context, a *[]models.Analytics) error {
+	docs := make([]interface{}, len(*a))
+	for i, v := range *a {
+		docs[i] = v
+	}
+	m.analyticsCollection.InsertMany(ctx, docs)
+	return nil
 }

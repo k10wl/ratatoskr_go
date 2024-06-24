@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-func TestRun(t *testing.T) {
+func TestGet(t *testing.T) {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	t.Cleanup(cancel)
@@ -166,5 +166,9 @@ func (_ dbMock) GetAllGroupsWithTags(context.Context) (*[]models.Group, error) {
 }
 
 func (_ dbMock) UpdateTags(context.Context, *[]models.Group) error {
+	return nil
+}
+
+func (_ dbMock) InsertAnalytics(context.Context, *[]models.Analytics) error {
 	return nil
 }

@@ -710,6 +710,7 @@ func TestHandleWebAppData(t *testing.T) {
 		editCaption    editCaptionsResult
 		copyMessages   copyMessagesResult
 		deleteMessages deleteMessagesResult
+		analytics      []models.Analytics
 	}
 	type tc struct {
 		name     string
@@ -744,9 +745,12 @@ func TestHandleWebAppData(t *testing.T) {
 		res.editCaption.caption = opts.Caption
 		return nil, true, nil
 	}
-	fh := newHandler(&dbMock{}, fakeLogger(), &config.BotConfig{
+	database := dbMock{}
+	fh := newHandler(&database, fakeLogger(), &config.BotConfig{
 		ReceiverID: 7890,
 	})
+
+	now := time.Now()
 
 	table := []tc{
 		{
@@ -758,12 +762,13 @@ func TestHandleWebAppData(t *testing.T) {
 				EffectiveMessage: &gotgbot.Message{
 					MessageId: 3,
 					WebAppData: &gotgbot.WebAppData{
-						Data: `{"tags": ["#tag1", "#tag2", "#tag3"], "mediaIds": "1", "messageId": "2"}`,
+						Data: `{"data": { "Group 1": ["#tag1", "#tag2", "#tag3"] }, "mediaIds": "1", "messageId": "2"}`,
 					}},
 			},
 			call: func(ctx *ext.Context) result {
 				res = result{}
-				fh.handleWebAppData()(&gotgbot.Bot{}, ctx)
+				fh.handleWebAppData(func() time.Time { return now })(&gotgbot.Bot{}, ctx)
+				res.analytics = *database.analytics
 				return res
 			},
 			expected: result{
@@ -781,6 +786,23 @@ func TestHandleWebAppData(t *testing.T) {
 					chatID:     1,
 					massageIDs: []int64{2, 3},
 				},
+				analytics: []models.Analytics{
+					{
+						Group: "Group 1",
+						Tag:   "#tag1",
+						Date:  now,
+					},
+					{
+						Group: "Group 1",
+						Tag:   "#tag2",
+						Date:  now,
+					},
+					{
+						Group: "Group 1",
+						Tag:   "#tag3",
+						Date:  now,
+					},
+				},
 			},
 		},
 
@@ -793,12 +815,13 @@ func TestHandleWebAppData(t *testing.T) {
 				EffectiveMessage: &gotgbot.Message{
 					MessageId: 3,
 					WebAppData: &gotgbot.WebAppData{
-						Data: `{"tags": ["#tag1", "#tag2", "#tag3"], "mediaIds": "1,2,3", "messageId": "2"}`,
+						Data: `{ "data": { "Group 1": ["#tag1", "#tag2", "#tag3"] }, "mediaIds": "1,2,3", "messageId": "2"}`,
 					}},
 			},
 			call: func(ctx *ext.Context) result {
 				res = result{}
-				fh.handleWebAppData()(&gotgbot.Bot{}, ctx)
+				fh.handleWebAppData(func() time.Time { return now })(&gotgbot.Bot{}, ctx)
+				res.analytics = *database.analytics
 				return res
 			},
 			expected: result{
@@ -815,6 +838,23 @@ func TestHandleWebAppData(t *testing.T) {
 				deleteMessages: deleteMessagesResult{
 					chatID:     1,
 					massageIDs: []int64{2, 3},
+				},
+				analytics: []models.Analytics{
+					{
+						Group: "Group 1",
+						Tag:   "#tag1",
+						Date:  now,
+					},
+					{
+						Group: "Group 1",
+						Tag:   "#tag2",
+						Date:  now,
+					},
+					{
+						Group: "Group 1",
+						Tag:   "#tag3",
+						Date:  now,
+					},
 				},
 			},
 		},
@@ -955,7 +995,10 @@ func TestIsTagsMessageFilter(t *testing.T) {
 	}
 }
 
-type dbMock struct{ groups *[]models.Group }
+type dbMock struct {
+	groups    *[]models.Group
+	analytics *[]models.Analytics
+}
 
 func (_ dbMock) GetAllGroupsWithTags(context.Context) (*[]models.Group, error) {
 	return &[]models.Group{
@@ -974,5 +1017,10 @@ func (_ dbMock) GetAllGroupsWithTags(context.Context) (*[]models.Group, error) {
 
 func (m *dbMock) UpdateTags(_ context.Context, g *[]models.Group) error {
 	m.groups = g
+	return nil
+}
+
+func (m *dbMock) InsertAnalytics(_ context.Context, a *[]models.Analytics) error {
+	m.analytics = a
 	return nil
 }
