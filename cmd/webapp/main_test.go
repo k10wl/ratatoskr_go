@@ -164,3 +164,7 @@ func (_ dbMock) GetAllGroupsWithTags(context.Context) (*[]models.Group, error) {
 		}},
 	}, nil
 }
+
+func (_ dbMock) UpdateTags(context.Context, *[]models.Group) error {
+	return nil
+}

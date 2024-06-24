@@ -1,9 +1,11 @@
 package bot
 
 import (
+	"context"
 	"fmt"
 	"ratatoskr/internal/config"
 	"ratatoskr/internal/logger"
+	"ratatoskr/internal/models"
 	"reflect"
 	"strings"
 	"testing"
@@ -22,7 +24,11 @@ func fakeLogger() *logger.Logger {
 }
 
 func TestReceiveGroupMedia(t *testing.T) {
-	fakeHandler := newHandler(fakeLogger(), &config.BotConfig{Token: "TOKEN", WebAppUrl: webAppUrl})
+	fakeHandler := newHandler(
+		&dbMock{},
+		fakeLogger(),
+		&config.BotConfig{Token: "TOKEN", WebAppUrl: webAppUrl},
+	)
 
 	calls := 0
 	res := fakeHandler.receiveGroup(
@@ -95,7 +101,7 @@ func TestRemoveOneEffectiveMessage(t *testing.T) {
 	}
 	var removed arg
 	calls := 0
-	fakeHandler := newHandler(fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
+	fakeHandler := newHandler(&dbMock{}, fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
 	original := deleteMessage
 	defer func() {
 		deleteMessage = original
@@ -136,7 +142,7 @@ func TestSendPhoto(t *testing.T) {
 	var sendWebAppUrl string
 	nextCalled := false
 	createdMessageID := 0
-	fakeHandler := newHandler(fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
+	fakeHandler := newHandler(&dbMock{}, fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
 	originalSendPhoto := sendPhoto
 	originalSendMessage := sendMessage
 	originalEditMessageReplyMarkup := editMessageReplyMarkup
@@ -222,7 +228,7 @@ func TestSendVideo(t *testing.T) {
 	createdMessageID := 0
 	var sendWebAppUrl string
 	nextCalled := false
-	fakeHandler := newHandler(fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
+	fakeHandler := newHandler(&dbMock{}, fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
 	originalSendVideo := sendVideo
 	originalEditMessageReplyMarkup := editMessageReplyMarkup
 	defer func() {
@@ -307,7 +313,7 @@ func TestSendAnimation(t *testing.T) {
 	createdMessageID := 0
 	var sendWebAppUrl string
 	nextCalled := false
-	fakeHandler := newHandler(fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
+	fakeHandler := newHandler(&dbMock{}, fakeLogger(), &config.BotConfig{WebAppUrl: webAppUrl})
 	originalSendAnimation := sendAnimation
 	originalEditMessageReplyMarkup := editMessageReplyMarkup
 	defer func() {
@@ -389,7 +395,11 @@ func TestRespondWithMediaGroup(t *testing.T) {
 	var send arg
 	var sendWebAppUrl string
 	sendMessageID := 0
-	fakeHandler := newHandler(fakeLogger(), &config.BotConfig{Token: "TOKEN", WebAppUrl: webAppUrl})
+	fakeHandler := newHandler(
+		&dbMock{},
+		fakeLogger(),
+		&config.BotConfig{Token: "TOKEN", WebAppUrl: webAppUrl},
+	)
 	fakeHandler.mediaGroupMap = newMediaGroupMap()
 	fakeHandler.mediaGroupMap.hashMap = map[string][]item{
 		"1": {
@@ -504,7 +514,11 @@ func TestRemoveEffectiveMediaGroup(t *testing.T) {
 	}
 	removed := arg{}
 	calls := 0
-	fakeHandler := newHandler(fakeLogger(), &config.BotConfig{Token: "TOKEN", WebAppUrl: webAppUrl})
+	fakeHandler := newHandler(
+		&dbMock{},
+		fakeLogger(),
+		&config.BotConfig{Token: "TOKEN", WebAppUrl: webAppUrl},
+	)
 	original := deleteMessages
 	defer func() {
 		deleteMessages = original
@@ -584,6 +598,7 @@ func TestSendWebAppMarkup(t *testing.T) {
 					return &gotgbot.Message{MessageId: int64(sendMessageCalls)}, nil
 				}
 				fakeHandler := newHandler(
+					&dbMock{},
 					fakeLogger(),
 					&config.BotConfig{Token: "TOKEN", WebAppUrl: webAppUrl},
 				)
@@ -606,6 +621,7 @@ func TestSendWebAppMarkup(t *testing.T) {
 					return &gotgbot.Message{MessageId: int64(sendMessageCalls)}, nil
 				}
 				fakeHandler := newHandler(
+					&dbMock{},
 					fakeLogger(),
 					&config.BotConfig{Token: "TOKEN", WebAppUrl: webAppUrl},
 				)
@@ -628,6 +644,7 @@ func TestSendWebAppMarkup(t *testing.T) {
 					return &gotgbot.Message{MessageId: int64(sendMessageCalls)}, nil
 				}
 				fakeHandler := newHandler(
+					&dbMock{},
 					fakeLogger(),
 					&config.BotConfig{Token: "TOKEN", WebAppUrl: webAppUrl},
 				)
@@ -650,6 +667,7 @@ func TestSendWebAppMarkup(t *testing.T) {
 				}
 
 				fakeHandler := newHandler(
+					&dbMock{},
 					fakeLogger(),
 					&config.BotConfig{Token: "TOKEN", WebAppUrl: webAppUrl},
 				)
@@ -726,7 +744,7 @@ func TestHandleWebAppData(t *testing.T) {
 		res.editCaption.caption = opts.Caption
 		return nil, true, nil
 	}
-	fh := newHandler(fakeLogger(), &config.BotConfig{
+	fh := newHandler(&dbMock{}, fakeLogger(), &config.BotConfig{
 		ReceiverID: 7890,
 	})
 
@@ -816,7 +834,11 @@ func TestHandleWebAppData(t *testing.T) {
 }
 
 func TestPingHandler(t *testing.T) {
-	fakeHandler := newHandler(fakeLogger(), &config.BotConfig{Token: "TOKEN", WebAppUrl: webAppUrl})
+	fakeHandler := newHandler(
+		&dbMock{},
+		fakeLogger(),
+		&config.BotConfig{Token: "TOKEN", WebAppUrl: webAppUrl},
+	)
 	originalSendMessage := sendMessage
 	defer func() {
 		sendMessage = originalSendMessage
@@ -838,4 +860,119 @@ func TestPingHandler(t *testing.T) {
 	if sendInChat != 1 {
 		t.Errorf("did not respond in same chat. Actual: %d", sendInChat)
 	}
+}
+
+func TestHandleUpdateTags(t *testing.T) {
+	database := dbMock{}
+	originalSendMessage := sendMessage
+	defer func() {
+		sendMessage = originalSendMessage
+	}()
+	type msg struct {
+		chatId  int64
+		message string
+	}
+	var m msg
+	sendMessage = func(b bot, chatId int64, message string, opts *gotgbot.SendMessageOpts) (*gotgbot.Message, error) {
+		m = msg{
+			chatId:  chatId,
+			message: message,
+		}
+		return nil, nil
+	}
+	fakeHandler := newHandler(
+		&database,
+		fakeLogger(),
+		&config.BotConfig{Token: "TOKEN", WebAppUrl: webAppUrl},
+	)
+	fakeHandler.handleUpdateTags()(&gotgbot.Bot{}, &ext.Context{
+		EffectiveChat: &gotgbot.Chat{
+			Id: 1,
+		},
+		EffectiveMessage: &gotgbot.Message{
+			Text: `Tags list
+
+• Group 1:
+#tag1
+#tag2
+#tag3
+
+• Group 2:
+#tag4
+#tag5
+#tag6`,
+		},
+	})
+	expectedGroups := []models.Group{
+		{Name: "Group 1", OriginalIndex: 0, Tags: []models.Tag{
+			{Name: "#tag1"},
+			{Name: "#tag2"},
+			{Name: "#tag3"},
+		}},
+		{Name: "Group 2", OriginalIndex: 1, Tags: []models.Tag{
+			{Name: "#tag4"},
+			{Name: "#tag5"},
+			{Name: "#tag6"},
+		}},
+	}
+	if !reflect.DeepEqual(expectedGroups, *database.groups) {
+		t.Errorf(
+			"failed to correctly update tags\nexpected: %+v\nactual:   %+v",
+			expectedGroups,
+			*database.groups,
+		)
+	}
+	expectedMessage := msg{
+		chatId:  1,
+		message: "👍",
+	}
+	if !reflect.DeepEqual(expectedMessage, m) {
+		t.Errorf(
+			"failed to correctly update tags\nexpected: %+v\nactual:   %+v",
+			expectedMessage,
+			m,
+		)
+	}
+}
+
+func TestIsTagsMessageFilter(t *testing.T) {
+	str := `Tags list
+
+• Group 1:
+#tag1
+#tag2
+#tag3
+
+• Group 2:
+#tag4
+#tag5
+#tag6`
+	if !isTagsMessage(&gotgbot.Message{Text: str}) {
+		t.Error("failed valid string")
+	}
+	if isTagsMessage(&gotgbot.Message{Text: "some random message"}) {
+		t.Error("passed invalid string")
+	}
+}
+
+type dbMock struct{ groups *[]models.Group }
+
+func (_ dbMock) GetAllGroupsWithTags(context.Context) (*[]models.Group, error) {
+	return &[]models.Group{
+		{Name: "group1", OriginalIndex: 0, Tags: []models.Tag{
+			{Name: "#tag1"},
+			{Name: "#tag2"},
+			{Name: "#tag3"},
+		}},
+		{Name: "group2", OriginalIndex: 1, Tags: []models.Tag{
+			{Name: "#tag4"},
+			{Name: "#tag5"},
+			{Name: "#tag6"},
+		}},
+	}, nil
+}
+
+func (m *dbMock) UpdateTags(_ context.Context, g *[]models.Group) error {
+	m.groups = g
+	return nil
 }

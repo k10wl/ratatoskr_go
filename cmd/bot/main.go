@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"ratatoskr/internal/bot"
 	"ratatoskr/internal/config"
 	"ratatoskr/internal/logger"
+	"ratatoskr/internal/mongo_db"
 )
 
 func run(
@@ -18,8 +20,14 @@ func run(
 	if err != nil {
 		return err
 	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	db, err := mongo_db.NewMongoDB(ctx, c.MongoURI, c.MongoDBName)
+	if err != nil {
+		return err
+	}
 
-	err = bot.Run(logger.NewLogger("Telegram bot", stdout, stderr), c)
+	err = bot.Run(db, logger.NewLogger("Telegram bot", stdout, stderr), c)
 	if err != nil {
 		return err
 	}

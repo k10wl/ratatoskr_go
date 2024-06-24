@@ -27,6 +27,10 @@ func TestGetBotConfig(t *testing.T) {
 					return "https:// link is required"
 				case "RECEIVER_ID":
 					return "1234"
+				case "MONGO_URI":
+					return "mongo://<name>:<pass>"
+				case "MONGO_DB_NAME":
+					return "database name"
 				default:
 					return ""
 				}
@@ -47,6 +51,10 @@ func TestGetBotConfig(t *testing.T) {
 					return "https:// link is required"
 				case "RECEIVER_ID":
 					return "1234"
+				case "MONGO_URI":
+					return "mongo://<name>:<pass>"
+				case "MONGO_DB_NAME":
+					return "database name"
 				default:
 					return ""
 				}
@@ -67,6 +75,58 @@ func TestGetBotConfig(t *testing.T) {
 					return ""
 				case "RECEIVER_ID":
 					return "1234"
+				case "MONGO_URI":
+					return "mongo://<name>:<pass>"
+				case "MONGO_DB_NAME":
+					return "database name"
+				default:
+					return ""
+				}
+			},
+			expected: nil,
+		},
+
+		{
+			name:        "should fail if MONGO_URI is not provided",
+			shouldError: true,
+			getenv: func(s string) string {
+				switch s {
+				case "TOKEN":
+					return "TOKEN"
+				case "ADMIN_IDS":
+					return "1234,7890"
+				case "WEBAPP_URL":
+					return "https:// link is required"
+				case "RECEIVER_ID":
+					return "1234"
+				case "MONGO_URI":
+					return ""
+				case "MONGO_DB_NAME":
+					return "database name"
+				default:
+					return ""
+				}
+			},
+			expected: nil,
+		},
+
+		{
+			name:        "should fail if MONGO_DB_NAME is not provided",
+			shouldError: true,
+			getenv: func(s string) string {
+				switch s {
+				case "TOKEN":
+					return "TOKEN"
+				case "ADMIN_IDS":
+					return "1234,7890"
+				case "WEBAPP_URL":
+					return "https:// link is required"
+				case "RECEIVER_ID":
+					return "1234"
+				case "MONGO_URI":
+					return "mongo://<name>:<pass>"
+				case "MONGO_DB_NAME":
+					return ""
 				default:
 					return ""
 				}
@@ -87,6 +147,10 @@ func TestGetBotConfig(t *testing.T) {
 					return "https:// link is required"
 				case "RECEIVER_ID":
 					return ""
+				case "MONGO_URI":
+					return "mongo://<name>:<pass>"
+				case "MONGO_DB_NAME":
+					return "database name"
 				default:
 					return ""
 				}
@@ -107,15 +171,21 @@ func TestGetBotConfig(t *testing.T) {
 					return "https:// link is required"
 				case "RECEIVER_ID":
 					return "1234"
+				case "MONGO_URI":
+					return "mongo://<name>:<pass>"
+				case "MONGO_DB_NAME":
+					return "database name"
 				default:
 					return ""
 				}
 			},
 			expected: &BotConfig{
-				Token:      "TOKEN",
-				AdminIDs:   []int64{1, 2},
-				WebAppUrl:  "https:// link is required",
-				ReceiverID: 1234,
+				Token:       "TOKEN",
+				AdminIDs:    []int64{1, 2},
+				WebAppUrl:   "https:// link is required",
+				ReceiverID:  1234,
+				MongoURI:    "mongo://<name>:<pass>",
+				MongoDBName: "database name",
 			},
 		},
 	}

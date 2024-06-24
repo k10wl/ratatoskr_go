@@ -48,5 +48,19 @@ func (m MongoDB) GetAllGroupsWithTags(ctx context.Context) (*[]models.Group, err
 	if err != nil {
 		return nil, err
 	}
-	return &res, nil
+	sorted := make([]models.Group, len(res))
+	for i, v := range res {
+		sorted[i] = v
+	}
+	return &sorted, nil
+}
+
+func (m MongoDB) UpdateTags(ctx context.Context, g *[]models.Group) error {
+	m.tagsCollection.DeleteMany(ctx, bson.D{{}})
+	docs := []interface{}{}
+	for _, val := range *g {
+		docs = append(docs, val)
+	}
+	_, err := m.tagsCollection.InsertMany(ctx, docs)
+	return err
 }

@@ -3,6 +3,7 @@ package bot
 import (
 	"fmt"
 	"ratatoskr/internal/config"
+	"ratatoskr/internal/db"
 	"ratatoskr/internal/logger"
 	"time"
 
@@ -10,7 +11,9 @@ import (
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
 )
 
-func Run(logger *logger.Logger, config *config.BotConfig) error {
+func Run(
+	db db.DB,
+	logger *logger.Logger, config *config.BotConfig) error {
 	logger.Info("initializing bot...")
 	bot, err := gotgbot.NewBot(config.Token, nil)
 	if err != nil {
@@ -28,7 +31,7 @@ func Run(logger *logger.Logger, config *config.BotConfig) error {
 
 	updater := ext.NewUpdater(dispatcher, nil)
 
-	addHandlers(dispatcher, logger, config)
+	addHandlers(db, dispatcher, logger, config)
 
 	logger.Info("staring polling...")
 	err = updater.StartPolling(bot, &ext.PollingOpts{

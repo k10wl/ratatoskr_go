@@ -1,11 +1,15 @@
 package bot
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"ratatoskr/internal/config"
+	"ratatoskr/internal/db"
 	"ratatoskr/internal/logger"
+	"ratatoskr/internal/models"
 	"ratatoskr/internal/utils"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -20,9 +24,11 @@ type handler struct {
 	logger        *logger.Logger
 	mediaGroupMap *mediaGroupMap
 	config        *config.BotConfig
+	db            db.DB
 }
 
 func newHandler(
+	db db.DB,
 	logger *logger.Logger,
 	config *config.BotConfig,
 ) *handler {
@@ -30,15 +36,17 @@ func newHandler(
 		config:        config,
 		logger:        logger,
 		mediaGroupMap: newMediaGroupMap(),
+		db:            db,
 	}
 }
 
 func addHandlers(
+	db db.DB,
 	dispatcher *ext.Dispatcher,
 	logger *logger.Logger,
 	config *config.BotConfig,
 ) {
-	handler := newHandler(logger, config)
+	handler := newHandler(db, logger, config)
 	middleware := newMidlleware(logger, config)
 
 	dispatcher.AddHandler(
@@ -46,6 +54,10 @@ func addHandlers(
 			middleware.adminOnly(
 				handler.handlePing()),
 		),
+	)
+
+	dispatcher.AddHandler(
+		handlers.NewMessage(isTagsMessage, middleware.adminOnly(handler.handleUpdateTags())),
 	)
 
 	dispatcher.AddHandler(
@@ -361,5 +373,47 @@ func (h handler) handlePing() handlers.Response {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
 		sendMessage(b, ctx.EffectiveChat.Id, "pong", nil)
 		return nil
+	}
+}
+
+var tagsRegexp = regexp.MustCompile(`(•.*:\n((#.*)(\n?))*)`)
+
+func isTagsMessage(msg *gotgbot.Message) bool {
+	return tagsRegexp.Match([]byte(msg.Text))
+}
+
+func (h handler) handleUpdateTags() handlers.Response {
+	return func(b *gotgbot.Bot, ctx *ext.Context) error {
+		all := ctx.EffectiveMessage.Text[strings.IndexRune(ctx.EffectiveMessage.Text, '•'):]
+		groupStrings := strings.Split(all, "\n\n")
+		g := []models.Group{}
+		ok := true
+		for i, group := range groupStrings {
+			data := strings.Split(group, "\n")
+			r := regexp.MustCompile("• (.*):")
+			matched := r.FindStringSubmatch(data[0])
+			name := matched[1]
+			tags := data[1:]
+			if len(tags) == 0 || len(matched) != 2 {
+				ok = false
+				break
+			}
+			t := []models.Tag{}
+			for _, v := range tags {
+				t = append(t, models.Tag{Name: v})
+			}
+			g = append(g, models.Group{Name: name, Tags: t, OriginalIndex: i})
+		}
+		if !ok {
+			sendMessage(b, ctx.EffectiveChat.Id, "error", nil)
+			return h.logger.Error("failed to parse tags")
+		}
+		err := h.db.UpdateTags(context.Background(), &g)
+		if err != nil {
+			sendMessage(b, ctx.EffectiveChat.Id, "error", nil)
+			return h.logger.Error(err.Error())
+		}
+		sendMessage(b, ctx.EffectiveChat.Id, "👍", nil)
+		return err
 	}
 }
