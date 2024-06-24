@@ -196,7 +196,7 @@ func TestSendPhoto(t *testing.T) {
 	)
 
 	if err != nil {
-		t.Errorf("Unexpected error in handlePhoto")
+		t.Errorf("Unexpected error in handlePhoto: %v", err)
 	}
 	if !nextCalled {
 		t.Errorf("Next was not called after handlePhoto")
@@ -281,7 +281,7 @@ func TestSendVideo(t *testing.T) {
 	)
 
 	if err != nil {
-		t.Errorf("Unexpected error in handleVideo")
+		t.Errorf("Unexpected error in handleVideo: %v", err)
 	}
 	if !nextCalled {
 		t.Errorf("Next was not called after handleVideo")
@@ -369,7 +369,7 @@ func TestSendAnimation(t *testing.T) {
 	)
 
 	if err != nil {
-		t.Errorf("Unexpected error in handleAnimation")
+		t.Errorf("Unexpected error in handleAnimation: %v", err)
 	}
 	if !nextCalled {
 		t.Errorf("Next was not called after handleAnimation")
@@ -475,7 +475,7 @@ func TestRespondWithMediaGroup(t *testing.T) {
 	)
 
 	if err != nil {
-		t.Errorf("Unexpected error in handleMediaGroup")
+		t.Errorf("Unexpected error in handleMediaGroup: %v", err)
 	}
 	expected := arg{inputMedia: []gotgbot.InputMedia{
 		gotgbot.InputMediaPhoto{Media: "file 1"},
@@ -891,8 +891,8 @@ func TestPingHandler(t *testing.T) {
 		return nil, nil
 	}
 	fakeHandler.handlePing()(&gotgbot.Bot{}, &ext.Context{
-
-		EffectiveChat: &gotgbot.Chat{Id: 1},
+		EffectiveMessage: &gotgbot.Message{MessageId: 1},
+		EffectiveChat:    &gotgbot.Chat{Id: 1},
 	})
 	pong := fmt.Sprintf("pong (%s)", fakeHandler.config.Version)
 	if messageText != pong {

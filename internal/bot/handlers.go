@@ -120,6 +120,7 @@ func addHandlers(
 
 func (h handler) handlePhoto(next handlers.Response) handlers.Response {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
+		h.logger.Info(fmt.Sprintf("received photo %d", ctx.EffectiveMessage.MessageId))
 		m, err := sendPhoto(
 			b,
 			ctx.EffectiveChat.Id,
@@ -137,13 +138,16 @@ func (h handler) handlePhoto(next handlers.Response) handlers.Response {
 				fmt.Sprintf("failed to reply with webapp, error: %v", err),
 			)
 		}
-		h.logger.Info(fmt.Sprintf("photo message reply success"))
+		h.logger.Info(
+			fmt.Sprintf("photo message reply success %d", m.MessageId),
+		)
 		return next(b, ctx)
 	}
 }
 
 func (h handler) handleVideo(next handlers.Response) handlers.Response {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
+		h.logger.Info(fmt.Sprintf("received video %d", ctx.EffectiveMessage.MessageId))
 		m, err := sendVideo(
 			b,
 			ctx.EffectiveChat.Id,
@@ -156,7 +160,9 @@ func (h handler) handleVideo(next handlers.Response) handlers.Response {
 			)
 		}
 		err = h.sendWebAppMarkup(b, ctx.EffectiveChat.Id, []int64{m.MessageId})
-		h.logger.Info(fmt.Sprintf("video message reply success"))
+		h.logger.Info(
+			fmt.Sprintf("video message reply success %d", m.MessageId),
+		)
 		if err != nil {
 			return h.logger.Error(
 				fmt.Sprintf("failed to reply with video, error: %v", err),
@@ -168,6 +174,7 @@ func (h handler) handleVideo(next handlers.Response) handlers.Response {
 
 func (h handler) handleAnimation(next handlers.Response) handlers.Response {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
+		h.logger.Info(fmt.Sprintf("received animation %d", ctx.EffectiveMessage.MessageId))
 		m, err := sendAnimation(
 			b,
 			ctx.EffectiveChat.Id,
@@ -185,23 +192,26 @@ func (h handler) handleAnimation(next handlers.Response) handlers.Response {
 				fmt.Sprintf("failed to reply with animation, error: %v", err),
 			)
 		}
-		h.logger.Info(fmt.Sprintf("animation message reply success"))
+		h.logger.Info(fmt.Sprintf("animation message reply success %d", m.MessageId))
 		return next(b, ctx)
 	}
 }
 
 func (h handler) removeOneEffectiveMessage() handlers.Response {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
+		h.logger.Info(fmt.Sprintf("removing message %d", ctx.EffectiveMessage.MessageId))
 		ok, err := deleteMessage(
 			b,
 			ctx.EffectiveMessage.GetSender().Id(),
 			ctx.EffectiveMessage.MessageId,
 		)
 		if ok {
-			h.logger.Info("original message removed successfully")
+			h.logger.Info(
+				fmt.Sprintf("message successfully removed %d", ctx.EffectiveMessage.MessageId),
+			)
 		}
 		if err != nil {
-			h.logger.Warning(fmt.Sprintf("failed to delete video reply message, error: %v", err))
+			h.logger.Warning(fmt.Sprintf("failed to delete reply message, error: %v", err))
 		}
 		return nil
 	}
@@ -221,6 +231,13 @@ func (h *handler) receiveGroup(
 			mediaFileID = ctx.EffectiveMessage.Photo[0].FileId
 			mediaType = "photo"
 		}
+		h.logger.Info(
+			fmt.Sprintf(
+				"receiving group %s, current file %s",
+				ctx.EffectiveMessage.MediaGroupId,
+				mediaFileID,
+			),
+		)
 		h.mediaGroupMap.add(ctx.EffectiveMessage.MediaGroupId, item{
 			fileID:    mediaFileID,
 			mediaType: mediaType,
@@ -236,6 +253,12 @@ func (h *handler) receiveGroup(
 			if related[0].messageID != ctx.EffectiveMessage.MessageId {
 				return
 			}
+			h.logger.Info(
+				fmt.Sprintf(
+					"processing group %s",
+					ctx.EffectiveMessage.MediaGroupId,
+				),
+			)
 			next(b, ctx)
 		}()
 		return nil
@@ -244,6 +267,12 @@ func (h *handler) receiveGroup(
 
 func (h handler) respondWithMediaGroup(next handlers.Response) handlers.Response {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
+		h.logger.Info(
+			fmt.Sprintf(
+				"responding with media group %d",
+				ctx.EffectiveMessage.MessageId,
+			),
+		)
 		group := []gotgbot.InputMedia{}
 		for _, item := range h.mediaGroupMap.get(ctx.EffectiveMessage.MediaGroupId) {
 			switch item.mediaType {
@@ -270,13 +299,34 @@ func (h handler) respondWithMediaGroup(next handlers.Response) handlers.Response
 		for _, message := range messages {
 			messageIDs = append(messageIDs, message.MessageId)
 		}
-		h.sendWebAppMarkup(b, ctx.EffectiveChat.Id, messageIDs)
+		h.logger.Info(
+			fmt.Sprintf(
+				"media group files send %d",
+				ctx.EffectiveMessage.MessageId,
+			),
+		)
+		err = h.sendWebAppMarkup(b, ctx.EffectiveChat.Id, messageIDs)
+		if err != nil {
+			return h.logger.Error(
+				fmt.Sprintf(
+					"failed to send web app markup  %d - %v",
+					ctx.EffectiveMessage.MessageId,
+					err,
+				),
+			)
+		}
 		return next(b, ctx)
 	}
 }
 
 func (h handler) removeEffectiveMediaGroup() handlers.Response {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
+		h.logger.Info(
+			fmt.Sprintf(
+				"removing effective media group - %s",
+				ctx.EffectiveMessage.MediaGroupId,
+			),
+		)
 		toDelete := []int64{}
 		for _, v := range h.mediaGroupMap.get(ctx.EffectiveMessage.MediaGroupId) {
 			toDelete = append(toDelete, v.messageID)
@@ -286,11 +336,23 @@ func (h handler) removeEffectiveMediaGroup() handlers.Response {
 			h.logger.Error(fmt.Sprintf("did not remove group media, reason: %+v", err))
 		}
 		h.mediaGroupMap.remove(ctx.EffectiveMessage.MediaGroupId)
+		h.logger.Info(
+			fmt.Sprintf(
+				"successfully removed media group id - %s",
+				ctx.EffectiveMessage.MediaGroupId,
+			),
+		)
 		return nil
 	}
 }
 
 func (h handler) sendWebAppMarkup(b bot, chatID int64, messageID []int64) error {
+	h.logger.Info(
+		fmt.Sprintf(
+			"sending web app markup %d",
+			messageID,
+		),
+	)
 	str := []string{}
 	for _, id := range messageID {
 		str = append(str, fmt.Sprint(id))
@@ -317,11 +379,17 @@ func (h handler) sendWebAppMarkup(b bot, chatID int64, messageID []int64) error 
 			},
 		},
 	})
-	deleteMessage(b, chatID, m.MessageId)
 	if err != nil {
 		return h.logger.Error(err.Error())
 	}
-	return err
+	_, err = deleteMessage(b, chatID, m.MessageId)
+	if err != nil && err != gotgbot.ErrNilBotClient {
+		return h.logger.Error(err.Error())
+	}
+	h.logger.Info(
+		fmt.Sprintf("webapp markup send - %d", messageID),
+	)
+	return nil
 }
 
 func (h handler) handleWebAppData(now func() time.Time) handlers.Response {
@@ -331,6 +399,13 @@ func (h handler) handleWebAppData(now func() time.Time) handlers.Response {
 		Data      map[string][]string `json:"data,required"`
 	}
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
+		h.logger.Info(
+			fmt.Sprintf(
+				"received webapp markup %d %+v",
+				ctx.EffectiveMessage.MessageId,
+				ctx.EffectiveMessage.WebAppData.Data,
+			),
+		)
 		var d data
 		err := json.Unmarshal([]byte(ctx.EffectiveMessage.WebAppData.Data), &d)
 		if err != nil {
@@ -382,14 +457,33 @@ func (h handler) handleWebAppData(now func() time.Time) handlers.Response {
 		}
 		c, cancel := context.WithTimeout(context.TODO(), time.Second*5)
 		defer cancel()
-		h.db.InsertAnalytics(c, &analytics)
+		err = h.db.InsertAnalytics(c, &analytics)
+		if err != nil {
+			h.logger.Error(err.Error())
+		}
+		h.logger.Info(
+			fmt.Sprintf(
+				"webapp data processed succussfully %d",
+				ctx.EffectiveMessage.MessageId,
+			),
+		)
 		return nil
 	}
 }
 
 func (h handler) handlePing() handlers.Response {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
-		sendMessage(b, ctx.EffectiveChat.Id, fmt.Sprintf("pong (%s)", h.config.Version), nil)
+		h.logger.Info(fmt.Sprintf("received ping command %d", ctx.EffectiveMessage.MessageId))
+		_, err := sendMessage(
+			b,
+			ctx.EffectiveChat.Id,
+			fmt.Sprintf("pong (%s)", h.config.Version),
+			nil,
+		)
+		if err != nil {
+			return h.logger.Error(err.Error())
+		}
+		h.logger.Info(fmt.Sprintf("successfully send pong %d", ctx.EffectiveMessage.MessageId))
 		return nil
 	}
 }
@@ -402,6 +496,9 @@ func isTagsMessage(msg *gotgbot.Message) bool {
 
 func (h handler) handleUpdateTags() handlers.Response {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
+		h.logger.Info(
+			fmt.Sprintf("received update tags request %d", ctx.EffectiveMessage.MessageId),
+		)
 		all := ctx.EffectiveMessage.Text[strings.IndexRune(ctx.EffectiveMessage.Text, '•'):]
 		groupStrings := strings.Split(all, "\n\n")
 		g := []models.Group{}
@@ -432,6 +529,9 @@ func (h handler) handleUpdateTags() handlers.Response {
 			return h.logger.Error(err.Error())
 		}
 		sendMessage(b, ctx.EffectiveChat.Id, "👍", nil)
+		h.logger.Info(
+			fmt.Sprintf("updated tags %d", ctx.EffectiveMessage.MessageId),
+		)
 		return err
 	}
 }

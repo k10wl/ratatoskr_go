@@ -16,20 +16,21 @@ func run(
 	stdout io.Writer,
 	stderr io.Writer,
 ) error {
+	l := logger.NewLogger("Telegram bot", stdout, stderr)
 	c, err := config.GetBotConfig(getenv)
 	if err != nil {
-		return err
+		return l.Error(err.Error())
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	db, err := mongo_db.NewMongoDB(ctx, c.MongoURI, c.MongoDBName)
 	if err != nil {
-		return err
+		return l.Error(err.Error())
 	}
 
-	err = bot.Run(db, logger.NewLogger("Telegram bot", stdout, stderr), c)
+	err = bot.Run(db, l, c)
 	if err != nil {
-		return err
+		return l.Error(err.Error())
 	}
 
 	return nil
