@@ -877,7 +877,7 @@ func TestPingHandler(t *testing.T) {
 	fakeHandler := newHandler(
 		&dbMock{},
 		fakeLogger(),
-		&config.BotConfig{Token: "TOKEN", WebAppUrl: webAppUrl},
+		&config.BotConfig{Version: "1.0.0", Token: "TOKEN", WebAppUrl: webAppUrl},
 	)
 	originalSendMessage := sendMessage
 	defer func() {
@@ -894,8 +894,9 @@ func TestPingHandler(t *testing.T) {
 
 		EffectiveChat: &gotgbot.Chat{Id: 1},
 	})
-	if messageText != "pong" {
-		t.Errorf("did not respond with `ping`. Actual: %s", messageText)
+	pong := fmt.Sprintf("pong (%s)", fakeHandler.config.Version)
+	if messageText != pong {
+		t.Errorf("did not respond with %q. Actual: %q", pong, messageText)
 	}
 	if sendInChat != 1 {
 		t.Errorf("did not respond in same chat. Actual: %d", sendInChat)

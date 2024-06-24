@@ -76,6 +76,9 @@ func TestGet(t *testing.T) {
 	if !containsMultipleSubstrings(html, tags) {
 		t.Errorf("html does not contain some of tags: %v\n%v", tags, html)
 	}
+	if !strings.Contains(html, "<meta name=\"version\" content=\"1.0.0\">") {
+		t.Errorf("html does not contain  version info")
+	}
 }
 
 func containsMultipleSubstrings(string string, substrings []string) bool {

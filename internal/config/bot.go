@@ -7,6 +7,7 @@ import (
 )
 
 type BotConfig struct {
+	Version     string
 	Token       string
 	AdminIDs    []int64
 	WebAppUrl   string
@@ -48,6 +49,7 @@ func GetBotConfig(getenv func(string) string) (*BotConfig, error) {
 		return nil, fmt.Errorf("required MONGO_DB_NAME was not provided")
 	}
 	return &BotConfig{
+		Version:     "1.0.0",
 		Token:       token,
 		AdminIDs:    adminIDs,
 		WebAppUrl:   webAppUrl,

@@ -6,6 +6,7 @@ import (
 )
 
 type WepAppConfig struct {
+	Version     string
 	AdminIDs    []int64
 	IP          string
 	Port        string
@@ -44,6 +45,7 @@ func GetWebAppConfig(getenv func(string) string) (*WepAppConfig, error) {
 		return nil, fmt.Errorf("bot token not provided")
 	}
 	return &WepAppConfig{
+		Version:     "1.0.0",
 		AdminIDs:    adminIDs,
 		IP:          ip,
 		Port:        port,

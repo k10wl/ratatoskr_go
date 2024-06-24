@@ -180,6 +180,7 @@ func TestGetBotConfig(t *testing.T) {
 				}
 			},
 			expected: &BotConfig{
+				Version:     "1.0.0",
 				Token:       "TOKEN",
 				AdminIDs:    []int64{1, 2},
 				WebAppUrl:   "https:// link is required",

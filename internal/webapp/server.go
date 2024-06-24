@@ -37,13 +37,19 @@ func addRoutes(
 	template *template.Template,
 ) {
 	mux.Handle("/static/", http.FileServer(http.FS(content)))
-	mux.HandleFunc("/", tokenOnly(config, logger, handleHome(db, logger, template)))
+	mux.HandleFunc("/", tokenOnly(config, logger, handleHome(config, db, logger, template)))
 	mux.Handle("/ping", ping())
 }
 
-func handleHome(db db.DB, logger *logger.Logger, template *template.Template) http.HandlerFunc {
+func handleHome(
+	config *config.WepAppConfig,
+	db db.DB,
+	logger *logger.Logger,
+	template *template.Template,
+) http.HandlerFunc {
 	type data struct {
-		Groups []models.Group
+		Version string
+		Groups  []models.Group
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.Background()
@@ -55,7 +61,9 @@ func handleHome(db db.DB, logger *logger.Logger, template *template.Template) ht
 			fmt.Fprintf(w, "")
 			return
 		}
-		err = template.ExecuteTemplate(w, "webapp", data{Groups: *group})
+		err = template.ExecuteTemplate(w, "webapp", data{
+			Version: config.Version,
+			Groups:  *group})
 		if err != nil {
 			logger.Error(err.Error())
 			fmt.Fprintf(w, "")

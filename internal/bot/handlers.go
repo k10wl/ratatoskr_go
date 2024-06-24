@@ -389,7 +389,7 @@ func (h handler) handleWebAppData(now func() time.Time) handlers.Response {
 
 func (h handler) handlePing() handlers.Response {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
-		sendMessage(b, ctx.EffectiveChat.Id, "pong", nil)
+		sendMessage(b, ctx.EffectiveChat.Id, fmt.Sprintf("pong (%s)", h.config.Version), nil)
 		return nil
 	}
 }
