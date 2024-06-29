@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const previousBodyClickTime = currentBodyClickTime
     currentBodyClickTime = performance.now()
-    if (previousBodyClickTime < currentBodyClickTime - 2000) {
+    if (previousBodyClickTime < currentBodyClickTime - 500) {
       clicks = 0
       return
     }
