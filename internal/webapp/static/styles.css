@@ -31,9 +31,8 @@ body {
 
 main {
   height: var(--tg-viewport-stable-height);
-  padding: 8px;
   overflow: auto;
-  scrollbar-gutter: stable;
+  scrollbar-gutter: stable both-edges;
 }
 
 button {
