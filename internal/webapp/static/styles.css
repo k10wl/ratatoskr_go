@@ -26,10 +26,14 @@ body {
   font-size: 100%;
   background-color: var(--tg-theme-bg-color);
   color: var(--tg-theme-text-color);
+  margin: 0;
 }
 
 main {
   height: var(--tg-viewport-stable-height);
+  padding: 8px;
+  overflow: auto;
+  scrollbar-gutter: stable;
 }
 
 button {
