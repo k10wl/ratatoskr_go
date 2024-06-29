@@ -762,7 +762,11 @@ func TestHandleWebAppData(t *testing.T) {
 				EffectiveMessage: &gotgbot.Message{
 					MessageId: 3,
 					WebAppData: &gotgbot.WebAppData{
-						Data: `{"data": { "Group 1": ["#tag1", "#tag2", "#tag3"] }, "mediaIds": "1", "messageId": "2"}`,
+						Data: `{
+                            "data": [["Group 1", "#tag1"],["Group 1", "#tag2"],["Group 1", "#tag3"]],
+                            "mediaIds": "1",
+                            "messageId": "2"
+                        }`,
 					}},
 			},
 			call: func(ctx *ext.Context) result {
@@ -815,7 +819,11 @@ func TestHandleWebAppData(t *testing.T) {
 				EffectiveMessage: &gotgbot.Message{
 					MessageId: 3,
 					WebAppData: &gotgbot.WebAppData{
-						Data: `{ "data": { "Group 1": ["#tag1", "#tag2", "#tag3"] }, "mediaIds": "1,2,3", "messageId": "2"}`,
+						Data: `{
+                            "data": [["Group 1", "#tag1"],["Group 1", "#tag2"],["Group 1", "#tag3"]],
+                            "mediaIds": "1,2,3",
+                            "messageId": "2"
+                        }`,
 					}},
 			},
 			call: func(ctx *ext.Context) result {
@@ -858,16 +866,97 @@ func TestHandleWebAppData(t *testing.T) {
 				},
 			},
 		},
+
+		{
+			name: "should remain order of elements",
+			ctx: &ext.Context{
+				EffectiveChat: &gotgbot.Chat{
+					Id: 1,
+				},
+				EffectiveMessage: &gotgbot.Message{
+					MessageId: 3,
+					WebAppData: &gotgbot.WebAppData{
+						Data: `{
+                            "data": [["Group 2", "#tag2"],["Group 1", "#tag3"],["Group 1", "#tag1"]],
+                            "mediaIds": "1,2,3",
+                            "messageId": "2"
+                        }`,
+					}},
+			},
+			call: func(ctx *ext.Context) result {
+				res = result{}
+				fh.handleWebAppData(func() time.Time { return now })(&gotgbot.Bot{}, ctx)
+				res.analytics = *database.analytics
+				return res
+			},
+			expected: result{
+				editCaption: editCaptionsResult{
+					chatID:    1,
+					messageID: 1,
+					caption:   "#tag2\n#tag3\n#tag1",
+				},
+				copyMessages: copyMessagesResult{
+					from:       1,
+					receiver:   7890,
+					messageIDs: []int64{1, 2, 3},
+				},
+				deleteMessages: deleteMessagesResult{
+					chatID:     1,
+					massageIDs: []int64{2, 3},
+				},
+				analytics: []models.Analytics{
+					{
+						Group: "Group 2",
+						Tag:   "#tag2",
+						Date:  now,
+					},
+					{
+						Group: "Group 1",
+						Tag:   "#tag3",
+						Date:  now,
+					},
+					{
+						Group: "Group 1",
+						Tag:   "#tag1",
+						Date:  now,
+					},
+				},
+			},
+		},
 	}
 
 	for _, test := range table {
 		actual := test.call(test.ctx)
-		if !reflect.DeepEqual(test.expected, actual) {
+		if !reflect.DeepEqual(test.expected.editCaption, actual.editCaption) {
 			t.Errorf(
-				"Unexpected result - %s\nexpected: %+v\nactual:   %+v",
+				"Unexpected edit caption result - %s\nexpected: %+v\nactual:   %+v",
 				test.name,
-				test.expected,
-				actual,
+				test.expected.editCaption,
+				actual.editCaption,
+			)
+		}
+		if !reflect.DeepEqual(test.expected.analytics, actual.analytics) {
+			t.Errorf(
+				"Unexpected analytics result - %s\nexpected: %+v\nactual:   %+v",
+				test.name,
+				test.expected.analytics,
+				actual.analytics,
+			)
+		}
+		if !reflect.DeepEqual(test.expected.copyMessages, actual.copyMessages) {
+			t.Errorf(
+				"Unexpected copy messgaes result - %s\nexpected: %+v\nactual:   %+v",
+				test.name,
+				test.expected.copyMessages,
+				actual.copyMessages,
+			)
+		}
+		if !reflect.DeepEqual(test.expected.deleteMessages, actual.deleteMessages) {
+			t.Errorf(
+				"Unexpected deleteMessages result - %s\nexpected: %+v\nactual:   %+v",
+				test.name,
+				test.expected.deleteMessages,
+				actual.deleteMessages,
 			)
 		}
 	}

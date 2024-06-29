@@ -16,6 +16,8 @@ type BotConfig struct {
 	MongoDBName string
 }
 
+const BotVersion = "1.0.1"
+
 func GetBotConfig(getenv func(string) string) (*BotConfig, error) {
 	token := getenv("TOKEN")
 	if token == "" {
@@ -49,7 +51,7 @@ func GetBotConfig(getenv func(string) string) (*BotConfig, error) {
 		return nil, fmt.Errorf("required MONGO_DB_NAME was not provided")
 	}
 	return &BotConfig{
-		Version:     "1.0.0",
+		Version:     BotVersion,
 		Token:       token,
 		AdminIDs:    adminIDs,
 		WebAppUrl:   webAppUrl,

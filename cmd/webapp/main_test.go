@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"ratatoskr/internal/config"
 	"ratatoskr/internal/db"
 	"ratatoskr/internal/models"
 	"strings"
@@ -76,7 +77,10 @@ func TestGet(t *testing.T) {
 	if !containsMultipleSubstrings(html, tags) {
 		t.Errorf("html does not contain some of tags: %v\n%v", tags, html)
 	}
-	if !strings.Contains(html, "<meta name=\"version\" content=\"1.0.0\">") {
+	if !strings.Contains(
+		html,
+		fmt.Sprintf("<meta name=\"version\" content=\"%s\">", config.WebAppVersion),
+	) {
 		t.Errorf("html does not contain  version info")
 	}
 }

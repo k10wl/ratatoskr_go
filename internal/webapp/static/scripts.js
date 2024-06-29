@@ -62,20 +62,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('callback'),
     HTMLButtonElement,
   ).addEventListener('click', () => {
-    const data = selectedTags.get().reduce((acc, cur) => {
-      const [group, tag] = cur.split('::')
-      if (acc[group]) {
-        acc[group].push(tag)
-      } else {
-        acc[group] = [tag]
-      }
-      return acc
-    }, /** @type {Record<string, string[]>} */ ({}))
     Telegram.WebApp.sendData(
       JSON.stringify({
         messageId,
         mediaIds,
-        data,
+        data: selectedTags.get().map((el) => el.split('::')),
       }),
     )
   })

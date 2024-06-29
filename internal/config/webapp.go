@@ -15,6 +15,8 @@ type WepAppConfig struct {
 	Token       string
 }
 
+const WebAppVersion = "1.0.1"
+
 func GetWebAppConfig(getenv func(string) string) (*WepAppConfig, error) {
 	stringAdminIDs := getenv("ADMIN_IDS")
 	if stringAdminIDs == "" {
@@ -45,7 +47,7 @@ func GetWebAppConfig(getenv func(string) string) (*WepAppConfig, error) {
 		return nil, fmt.Errorf("bot token not provided")
 	}
 	return &WepAppConfig{
-		Version:     "1.0.0",
+		Version:     WebAppVersion,
 		AdminIDs:    adminIDs,
 		IP:          ip,
 		Port:        port,

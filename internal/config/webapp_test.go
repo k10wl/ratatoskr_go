@@ -180,7 +180,7 @@ func TestGetWebAppConfig(t *testing.T) {
 			},
 			shouldError: false,
 			expected: &WepAppConfig{
-				Version:     "1.0.0",
+				Version:     WebAppVersion,
 				AdminIDs:    []int64{1234, 7890},
 				IP:          "127.0.0.1",
 				Port:        "8080",

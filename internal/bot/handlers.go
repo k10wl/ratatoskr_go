@@ -394,9 +394,9 @@ func (h handler) sendWebAppMarkup(b bot, chatID int64, messageID []int64) error 
 
 func (h handler) handleWebAppData(now func() time.Time) handlers.Response {
 	type data struct {
-		MediaIDs  string              `json:"mediaIds,required"`
-		MessageID string              `json:"messageId,required"`
-		Data      map[string][]string `json:"data,required"`
+		MediaIDs  string     `json:"mediaIds,required"`
+		MessageID string     `json:"messageId,required"`
+		Data      [][]string `json:"data,required"`
 	}
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
 		h.logger.Info(
@@ -417,18 +417,23 @@ func (h handler) handleWebAppData(now func() time.Time) handlers.Response {
 		}
 		tags := []string{}
 		analytics := []models.Analytics{}
-		for group, tagsArray := range d.Data {
-			for _, tag := range tagsArray {
-				tags = append(tags, tag)
-				analytics = append(
-					analytics,
-					models.Analytics{
-						Group: group,
-						Tag:   tag,
-						Date:  now(),
-					},
+		for _, v := range d.Data {
+			if len(v) != 2 {
+				return h.logger.Error(
+					fmt.Sprintf("Failed to parse data from web app, wrong format: %+v", v),
 				)
 			}
+			group := v[0]
+			tag := v[1]
+			tags = append(tags, tag)
+			analytics = append(
+				analytics,
+				models.Analytics{
+					Group: group,
+					Tag:   tag,
+					Date:  now(),
+				},
+			)
 		}
 		_, _, err = editMessageCaption(b, &gotgbot.EditMessageCaptionOpts{
 			ChatId:    ctx.EffectiveChat.Id,
