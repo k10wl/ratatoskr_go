@@ -15,10 +15,11 @@
 </head>
 
 <body>
-    <div>
+    <main>
         {{range .Groups}}{{template "group" .}}{{end}}
         <button type="button" id="callback">{{template "send-icon"}}</button>
-    </div>
+    </main>
+    <div id="version" aria-hidden="true">v{{.Version}}</div>
 </body>
 
 </html>

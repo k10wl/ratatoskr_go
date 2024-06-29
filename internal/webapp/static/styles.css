@@ -28,6 +28,10 @@ body {
   color: var(--tg-theme-text-color);
 }
 
+main {
+  height: var(--tg-viewport-stable-height);
+}
+
 button {
   cursor: pointer;
   border: none;
@@ -188,4 +192,18 @@ h3 {
 .tag:has(> :checked) {
   background-color: var(--tg-theme-button-color);
   color: var(--tg-theme-button-text-color);
+}
+
+#version {
+  pointer-events: none;
+  position: fixed;
+  top: calc(var(--tg-viewport-stable-height) - 2rem);
+  left: 1rem;
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background: var(--tg-theme-secondary-bg-color);
+}
+
+#version[aria-hidden='true'] {
+  display: none;
 }

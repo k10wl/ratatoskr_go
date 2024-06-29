@@ -15,6 +15,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const persistence = new Persistence(messageId)
   const openedGroups = new StringSet(persistence.session.openedGroups)
   const selectedTags = new StringSet(persistence.session.selectedTags)
+  const mainElement = assertInstance(
+    document.querySelector('main'),
+    HTMLElement,
+  )
 
   const initialTransitionDuration =
     document.documentElement.style.getPropertyValue(TRANSITION_PROPERTY)
@@ -70,6 +74,33 @@ document.addEventListener('DOMContentLoaded', () => {
       }),
     )
   })
+
+  let clicks = 0
+  let currentBodyClickTime = 0
+  /**
+   * @param {Event} e
+   */
+  const displayVersion = (e) => {
+    if (e.target !== mainElement) {
+      return
+    }
+    const previousBodyClickTime = currentBodyClickTime
+    currentBodyClickTime = performance.now()
+    if (previousBodyClickTime < currentBodyClickTime - 2000) {
+      clicks = 0
+      return
+    }
+    clicks++
+    if (clicks < 5) {
+      return
+    }
+    assertInstance(
+      document.getElementById('version'),
+      HTMLElement,
+    ).setAttribute('aria-hidden', 'false')
+    mainElement.removeEventListener('click', displayVersion)
+  }
+  mainElement.addEventListener('click', displayVersion)
 })
 
 class StringSet {
