@@ -482,7 +482,7 @@ func (h handler) handlePing() handlers.Response {
 		_, err := sendMessage(
 			b,
 			ctx.EffectiveChat.Id,
-			fmt.Sprintf("pong (%s)", h.config.Version),
+			fmt.Sprintf("pong (v%s)", h.config.Version),
 			nil,
 		)
 		if err != nil {

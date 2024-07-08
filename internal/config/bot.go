@@ -16,7 +16,7 @@ type BotConfig struct {
 	MongoDBName string
 }
 
-const BotVersion = "1.0.1"
+const BotVersion = "1.0.2"
 
 func GetBotConfig(getenv func(string) string) (*BotConfig, error) {
 	token := getenv("TOKEN")

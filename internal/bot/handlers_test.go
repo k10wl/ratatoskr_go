@@ -983,7 +983,7 @@ func TestPingHandler(t *testing.T) {
 		EffectiveMessage: &gotgbot.Message{MessageId: 1},
 		EffectiveChat:    &gotgbot.Chat{Id: 1},
 	})
-	pong := fmt.Sprintf("pong (%s)", fakeHandler.config.Version)
+	pong := fmt.Sprintf("pong (v%s)", fakeHandler.config.Version)
 	if messageText != pong {
 		t.Errorf("did not respond with %q. Actual: %q", pong, messageText)
 	}
