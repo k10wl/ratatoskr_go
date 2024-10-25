@@ -19,6 +19,10 @@ test-cover:
 	@sleep 1
 	@rm ./tmp/cover.html
 
+run-ci-check:
+	$(MAKE) vet
+	$(MAKE) test
+
 build: bot webapp
 
 bot:
