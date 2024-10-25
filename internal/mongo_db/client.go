@@ -49,8 +49,8 @@ func (m MongoDB) GetAllGroupsWithTags(ctx context.Context) (*[]models.Group, err
 		return nil, err
 	}
 	sorted := make([]models.Group, len(res))
-	for i, v := range res {
-		sorted[i] = v
+	for _, v := range res {
+		sorted[v.OriginalIndex] = v
 	}
 	return &sorted, nil
 }
