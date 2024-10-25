@@ -1,6 +1,6 @@
 module ratatoskr
 
-go 1.22.2
+go 1.23.1
 
 require (
 	github.com/PaulSonOfLars/gotgbot/v2 v2.0.0-rc.27 // indirect
