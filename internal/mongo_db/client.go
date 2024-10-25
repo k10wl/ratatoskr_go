@@ -48,10 +48,7 @@ func (m MongoDB) GetAllGroupsWithTags(ctx context.Context) (*[]models.Group, err
 	if err != nil {
 		return nil, err
 	}
-	sorted := make([]models.Group, len(res))
-	for _, v := range res {
-		sorted[v.OriginalIndex] = v
-	}
+	sorted := fixSorting(res)
 	return &sorted, nil
 }
 
@@ -72,4 +69,12 @@ func (m MongoDB) InsertAnalytics(ctx context.Context, a *[]models.Analytics) err
 	}
 	m.analyticsCollection.InsertMany(ctx, docs)
 	return nil
+}
+
+func fixSorting(group []models.Group) []models.Group {
+	sorted := make([]models.Group, len(group))
+	for _, v := range group {
+		sorted[v.OriginalIndex] = v
+	}
+	return sorted
 }
