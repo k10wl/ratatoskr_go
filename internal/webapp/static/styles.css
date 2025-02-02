@@ -30,7 +30,7 @@ body {
 }
 
 main {
-  height: var(--tg-viewport-stable-height);
+  height: var(--tg-viewport-height);
   overflow: auto;
   scrollbar-gutter: stable both-edges;
 }
@@ -102,7 +102,7 @@ label {
   justify-content: center;
   align-items: center;
   position: fixed;
-  top: calc(var(--tg-viewport-stable-height) - 3rem);
+  bottom: 1rem;
   right: 1rem;
 }
 
@@ -200,7 +200,7 @@ h3 {
 #version {
   pointer-events: none;
   position: fixed;
-  top: calc(var(--tg-viewport-stable-height) - 2rem);
+  bottom: 1rem;
   left: 1rem;
   border-radius: 0.25rem;
   padding: 0.25rem 0.5rem;
