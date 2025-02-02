@@ -15,7 +15,7 @@ type WepAppConfig struct {
 	Token       string
 }
 
-const WebAppVersion = "1.1.4"
+const WebAppVersion = "1.1.5"
 
 func GetWebAppConfig(getenv func(string) string) (*WepAppConfig, error) {
 	stringAdminIDs := getenv("ADMIN_IDS")
